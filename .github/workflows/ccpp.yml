@@ -1,0 +1,28 @@
+name: C/C++ CI
+
+on:
+  push:
+    branches: [ master ]
+    path-ignore:
+    - 'ci/*'
+    - 'doc/**'
+    - 'README'
+    - '*_CHANGES'
+  pull_request:
+    branches: [ master ]
+    path-ignore:
+    - 'doc/**'
+    - 'README'
+    - '*_CHANGES'
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: prepare
+      run: ci/prepare.sh
+    - name: check
+      run: ci/run.sh
