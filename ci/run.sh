@@ -1,5 +1,20 @@
 #!/bin/bash -e
 
+usage() {
+  echo "usage: $0 [--help] [windows]"
+  echo
+  echo "windows: use wine to test x86 32bit"
+  exit 1
+}
+
+if [ $# -gt 0 ]; then
+  if [ $# -gt 1 ] || [ "$1" != "windows" ]; then
+    usage
+  else
+    WINE=1
+  fi
+fi
+
 if [ -d bin ]; then
   make clean
 fi
@@ -108,4 +123,10 @@ else
   else
     echo -e "SLJIT tests: \e[33mSKIPPED\e[0m"
   fi
+fi
+
+if [ ! -z "$WINE" ]; then
+  make clean
+  make CROSS_COMPILER=i686-w64-mingw32-gcc
+  wine ./bin/sljit_test -s
 fi
