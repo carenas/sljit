@@ -17,12 +17,15 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v2
     - name: prepare
       run: ci/prepare.sh
     - name: check
       run: ci/run.sh
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: check
+      run: ci/run.bat
