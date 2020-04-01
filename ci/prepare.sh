@@ -2,6 +2,7 @@
 
 # assumes build host = amd64/x86_64 and either ubuntu >= 16.04, debian > 8
 # fedora/centos/redhat are minimally supported by allowing multilib validation
+# alpine is enabled for multiple compiler tests
 
 if [ -e /etc/os-release ]; then
   . /etc/os-release
@@ -11,7 +12,9 @@ fi
 
 ARCH=$(uname -m)
 if [ $? -eq 0 ] && [ "$ARCH" != "x86_64" ]; then
-  exit 0
+  if [ "$ID" != "alpine" ]; then
+    exit 0
+  fi
 fi
 
 USERID=$(id -u)
@@ -47,6 +50,11 @@ case $ID in
     $SUDO dnf -y update
     $SUDO dnf -y install gcc make
     $SUDO dnf -y install glibc-devel.i686
+    ;;
+  alpine)
+    $SUDO apk add bash
+    $SUDO apk add make musl-dev
+    $SUDO apk add gcc pcc clang
     ;;
   *)
     exit 1

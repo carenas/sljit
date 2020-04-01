@@ -8,6 +8,8 @@ if [ -e /etc/os-release ]; then
   source /etc/os-release
   VERSION_ID=${VERSION_ID%".04"} # only keep integer part of ubuntu versions
   VERSION_ID=${VERSION_ID%".10"} # non LTS version differences ignored
+  VERSION_ID=${VERSION_ID/_*/} # non released version differences ignored
+  VERSION_ID=${VERSION_ID/./} # 3.0.8 becomes 308
 else
   VERSION_ID=0
   ID=unknown
@@ -27,12 +29,21 @@ case $ID in
       exit 0
     fi
     ;;
+  alpine)
+    ;;
   *)
     exit 0
 esac
 
 make clean
-if [ "$ID" != "debian" ] && [ "$ID" != "ubuntu" ]; then
+if [ "$ID" = "alpine" ]; then
+  # multiple 64-bit compiler
+  for COMPILER in c89 clang pcc; do
+    make CC=$COMPILER
+    echo -n "$COMPILER: " && bin/sljit_test -s
+    make clean
+  done
+elif [ "$ID" != "debian" ] && [ "$ID" != "ubuntu" ]; then
   # only do 32-bit as other architectures are custom
   make CC="gcc -m32" sljit_test
   bin/sljit_test -s
