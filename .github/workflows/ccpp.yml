@@ -2,18 +2,24 @@ name: C/C++ CI
 
 on:
   push:
-    branches: [ master ]
+    branches:
+    -  master
     path-ignore:
     - 'ci/*'
     - 'doc/**'
     - 'README'
     - '*_CHANGES'
   pull_request:
-    branches: [ master ]
+    branches:
+    -  master
     path-ignore:
     - 'doc/**'
     - 'README'
     - '*_CHANGES'
+    branches:
+    - integration
+    paths:
+    - '**'
 
 jobs:
   build:
