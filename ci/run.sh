@@ -1,18 +1,31 @@
 #!/bin/bash -e
 
 usage() {
-  echo "usage: $0 [--help] [windows]"
+  echo "usage: $0 [--help] [windows|static]"
   echo
   echo "windows: use wine to test x86 32bit"
+  echo "static: workaround virtualization bugs that trigger qemu crashes"
   exit 1
 }
 
-if [ $# -gt 0 ]; then
-  if [ $# -gt 1 ] || [ "$1" != "windows" ]; then
-    usage
-  else
-    WINE=1
-  fi
+ARGC=$#
+if [ $ARGC -gt 0 ] && [ $ARGC -gt 2 ]; then
+  usage
+else
+  while [ $ARGC -gt 0 ]; do
+    case $1 in
+      windows)
+        WINE=1
+        ;;
+      static)
+        STATIC=" -static"
+        ;;
+      *)
+        usage
+    esac
+    ARGC=$(( ARGC - 1 ))
+    shift
+  done
 fi
 
 if [ -d bin ]; then
@@ -84,7 +97,7 @@ else
     qemu-mips64el-static -L /usr/mips64el-linux-gnuabi64 bin/sljit_test -s
 
     make clean
-    make CROSS_COMPILER=mips-linux-gnu-gcc sljit_test
+    make CROSS_COMPILER="mips-linux-gnu-gcc$STATIC" sljit_test
 # requires qemu >= 3.1.0 (debian >= 10) or qemu <= 2.5.0 (ubuntu 16.04)
 # segfaults in debian 9 and ubuntu 18.04
     if [[ ("$ID" = "ubuntu" && ($VERSION_ID -eq 1604 || $VERSION_ID -ge 1904)) ||
@@ -113,7 +126,7 @@ else
   fi
 
   make clean
-  make CROSS_COMPILER=powerpc-linux-gnu-gcc sljit_test
+  make CROSS_COMPILER="powerpc-linux-gnu-gcc$STATIC" sljit_test
 # requires qemu >= 4.2.0 or qemu <= 2.5.0 (ubuntu 16.04)
 # segfaults in debian 9 and ubuntu 18.04
 # fails test54 case 18 in debian 10 and ubuntu 18.04 thru 19.10 because of NaN
