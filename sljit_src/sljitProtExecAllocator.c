@@ -102,8 +102,13 @@ struct chunk_header {
 #endif
 #endif
 
+#ifndef MFD_CLOEXEC
+#define MFD_CLOEXEC 0x0001U
+#endif
+
 int mkostemp(char *template, int flags);
 char *secure_getenv(const char *name);
+int memfd_create(const char *name, unsigned int flags);
 
 static SLJIT_INLINE int create_tempfile(void)
 {
@@ -113,6 +118,12 @@ static SLJIT_INLINE int create_tempfile(void)
 	size_t tmp_name_len = 0;
 	char *dir;
 	size_t len;
+
+#ifdef HAVE_MEMFD_CREATE
+	fd = memfd_create("sljit", MFD_CLOEXEC);
+	if (fd != -1)
+		return fd;
+#endif
 
 	dir = secure_getenv("TMPDIR");
 

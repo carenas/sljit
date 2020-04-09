@@ -66,6 +66,9 @@ extern "C" {
 /* Define to 1 if your system has secure_getenv function */
 /* #undef HAVE_SECURE_GETENV */
 
+/* Define to 1 if your system has memfd_create function */
+/* #undef HAVE_MEMFD_CREATE */
+
 /* --------------------------------------------------------------------- */
 /*  Utilities                                                            */
 /* --------------------------------------------------------------------- */
