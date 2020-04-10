@@ -43,6 +43,63 @@ char *secure_getenv(const char *name)
 #endif
 #endif /* HAVE_SECURE_GETENV */
 
+#ifndef HAVE_MEMFD_CREATE
+#if defined(__FreeBSD__)
+#include <sys/types.h>
+#include <sys/mman.h>
+#include <fcntl.h>
+
+int memfd_create(const char *name, unsigned int flags)
+{
+	SLJIT_UNUSED_ARG(name);
+	SLJIT_UNUSED_ARG(flags);
+#ifdef SHM_ANON
+	return shm_open(SHM_ANON, O_RDWR, 0600);
+#else
+	return -1;
+#endif
+}
+#elif defined(__NetBSD__) || defined(__OpenBSD__)
+
+int memfd_create(const char *name, unsigned int flags)
+{
+	SLJIT_UNUSED_ARG(name);
+	SLJIT_UNUSED_ARG(flags);
+	return -1;
+}
+
+#elif defined(__ANDROID__)
+
+#error need API30 and to define HAVE_MEMFD_CREATE
+
+#elif defined(__linux__)
+#include <sys/syscall.h>
+
+#ifndef SYS_memfd_create
+int memfd_create(const char *name, unsigned int flags)
+{
+	SLJIT_UNUSED_ARG(name);
+	SLJIT_UNUSED_ARG(flags);
+	return -1;
+}
+#else
+#ifdef __GLIBC__
+#include <gnu/libc-version.h>
+#endif
+
+/* this also works for MUSL but it should be just considered a failsafe */
+#if __GLIBC_MINOR__ < 17 && !defined(__ANDROID__)
+#include <unistd.h>
+int memfd_create(const char *name, unsigned int flags)
+{
+	return syscall(SYS_memfd_create, name, flags);
+}
+#endif
+#endif /* SYS_memfd_create */
+
+#endif
+#endif /* HAVE_MEMFD_CREATE */
+
 /* ------------------------------------------------------------------------ */
 /*  Locks                                                                   */
 /* ------------------------------------------------------------------------ */

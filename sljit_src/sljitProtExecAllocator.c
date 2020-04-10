@@ -119,11 +119,9 @@ static SLJIT_INLINE int create_tempfile(void)
 	char *dir;
 	size_t len;
 
-#ifdef HAVE_MEMFD_CREATE
 	fd = memfd_create("sljit", MFD_CLOEXEC);
 	if (fd != -1)
 		return fd;
-#endif
 
 	dir = secure_getenv("TMPDIR");
 
