@@ -97,8 +97,9 @@ struct chunk_header {
 #endif
 
 #if !(defined(__NetBSD__) && defined(MAP_REMAPDUP))
+#include <stdlib.h>
+
 int mkostemp(char *template, int flags);
-char *secure_getenv(const char *name);
 
 static SLJIT_INLINE int create_tempfile(void)
 {
@@ -106,7 +107,6 @@ static SLJIT_INLINE int create_tempfile(void)
 
 	char tmp_name[256];
 	size_t tmp_name_len;
-	char *dir;
 	size_t len;
 
 #ifdef P_tmpdir
@@ -125,11 +125,10 @@ static SLJIT_INLINE int create_tempfile(void)
 	tmp_name_len = 4;
 #endif
 
-#if defined(__NetBSD__)
-	dir = getenv("TMPDIR");
-#else
-	dir = secure_getenv("TMPDIR");
-#endif
+#ifdef HAVE_SECURE_GETENV
+	/* this is a GNU extension, make sure to use -D_GNU_SOURCE */
+	char *dir = secure_getenv("TMPDIR");
+
 	if (dir) {
 		len = strlen(dir);
 		if (len > 0 && len < sizeof(tmp_name)) {
@@ -137,6 +136,7 @@ static SLJIT_INLINE int create_tempfile(void)
 			tmp_name_len = len;
 		}
 	}
+#endif
 
 	SLJIT_ASSERT(tmp_name_len > 0 && tmp_name_len < sizeof(tmp_name));
 
