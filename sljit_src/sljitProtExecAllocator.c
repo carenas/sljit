@@ -64,6 +64,9 @@
 /* --------------------------------------------------------------------- */
 /*  System (OS) functions                                                */
 /* --------------------------------------------------------------------- */
+#ifndef HAVE_MEMFD_CREATE
+#include "../compat/memfd_create.c"
+#endif
 
 /* 64 KByte. */
 #define CHUNK_SIZE	0x10000
