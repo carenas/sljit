@@ -83,6 +83,7 @@ struct chunk_header {
        as it only uses local variables
 */
 
+#include <sys/stat.h>
 #include <fcntl.h>
 
 #ifndef O_NOATIME
@@ -111,8 +112,12 @@ static SLJIT_INLINE int create_tempfile(void)
 #ifdef HAVE_MEMFD_CREATE
 	/* this is a GNU extension, make sure to use -D_GNU_SOURCE */
 	fd = memfd_create("sljit", MFD_CLOEXEC);
-	if (fd != -1)
-		return fd;
+	if (fd != -1) {
+		if (fchmod(fd, 0) == 0)
+			return fd;
+		else
+			close(fd);
+	}
 #endif
 
 #ifdef P_tmpdir
