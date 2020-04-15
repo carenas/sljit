@@ -32,11 +32,6 @@
 #include <stdio.h>
 #endif
 
-#if (defined SLJIT_DEBUG && SLJIT_DEBUG \
-	&& (!defined(SLJIT_ASSERT) || !defined(SLJIT_UNREACHABLE) || !defined(SLJIT_HALT_PROCESS)))
-#include <stdlib.h>
-#endif
-
 #ifdef __cplusplus
 extern "C" {
 #endif

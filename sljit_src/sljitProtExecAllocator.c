@@ -85,7 +85,6 @@ struct chunk_header {
 
 #if !(defined(__NetBSD__) && defined(MAP_REMAPDUP))
 #include <sys/stat.h>
-#include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <string.h>

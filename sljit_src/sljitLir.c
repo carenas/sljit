@@ -35,7 +35,7 @@
 
 #if !(defined SLJIT_STD_MACROS_DEFINED && SLJIT_STD_MACROS_DEFINED)
 
-/* These libraries are needed for the macros below. */
+/* These libraries are needed for the default allocation/string macros */
 #include <stdlib.h>
 #include <string.h>
 
