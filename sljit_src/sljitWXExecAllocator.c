@@ -28,21 +28,29 @@
    This file contains a simple W^X executable memory allocator for POSIX
    like systems and windows
 
-   It allocates a separate block for each code block and may waste a lot of memory
-   because it uses multiple (rounded up from the size requested) page (minimun 4KB)
-   sized blocks.
+   MAP_ANON is required (that is considered a feature) so make sure to adjust
+   your definitions accordingly or the code will fail to build.
 
-   It changes the page permissions as needed RW <-> RX and therefore if you will be
-   updating the code after it has been generated, need to make sure to block any
-   concurrent execution or could result in a segfault, that could even manifest in
-   a different address than the one that was being modified.
+   If your system doesn't support mapping of anonymous pages (ex: IRIX) it is
+   likely it also doesn't need this allocator and should be using the standard
+   one instead.
+
+   It allocates a separate map for each code block and may waste a lot of
+   memory because it uses multiple (rounded up from the size requested) page
+   sized (minimum 4KB) blocks.
+
+   It changes the page permissions (RW <-> RX) as needed and therefore, if you
+   will be updating the code after it has been generated, need to make sure to
+   block any concurrent execution, or could result in a segfault, that could
+   even manifest itself at a different address than the one that was being
+   modified.
 
    Only use if you are unable to use the regular allocator because of security
    restrictions and adding exceptions to your application is not possible.
 */
 
 #ifndef _WIN32
-
+#include <sys/types.h>
 #include <sys/mman.h>
 
 #ifdef __NetBSD__
@@ -64,8 +72,9 @@
 SLJIT_API_FUNC_ATTRIBUTE void* sljit_malloc_exec(sljit_uw size)
 {
 	sljit_uw* ptr;
+	sljit_uw page_mask = (sljit_uw)get_page_alignment();
 
-	size += sizeof(sljit_uw);
+	size = (size + sizeof(sljit_uw) + page_mask) & ~page_mask;
 	ptr = (sljit_uw*)mmap(NULL, size, PROT_READ | PROT_WRITE | SLJIT_PROT_WX,
 				MAP_PRIVATE | MAP_ANON, -1, 0);
 
@@ -91,7 +100,7 @@ SLJIT_API_FUNC_ATTRIBUTE void* sljit_malloc_exec(sljit_uw size)
 SLJIT_API_FUNC_ATTRIBUTE void sljit_free_exec(void* ptr)
 {
 	sljit_uw *start_ptr = ((sljit_uw*)ptr) - 1;
-	munmap(start_ptr, *start_ptr);
+	munmap((void*)start_ptr, *start_ptr);
 }
 
 SLJIT_API_FUNC_ATTRIBUTE void sljit_update_wx_flags(void *from, void *to,
