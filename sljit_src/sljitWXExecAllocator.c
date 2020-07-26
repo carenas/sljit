@@ -61,12 +61,16 @@ SLJIT_API_FUNC_ATTRIBUTE void* sljit_malloc_exec(sljit_uw size)
 	size += sizeof(sljit_uw);
 	ptr = (sljit_uw*)mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
 
-	if (ptr == MAP_FAILED) {
+	if (ptr == MAP_FAILED)
+		return NULL;
+
+	*ptr = size;
+	if (mprotect((void*)ptr, size, PROT_EXEC) < 0) {
+		munmap((void*)ptr, size);
 		return NULL;
 	}
 
-	*ptr++ = size;
-	return ptr;
+	return ptr + 1;
 }
 
 SLJIT_API_FUNC_ATTRIBUTE void sljit_free_exec(void* ptr)
@@ -105,15 +109,13 @@ SLJIT_API_FUNC_ATTRIBUTE void* sljit_malloc_exec(sljit_uw size)
 	if (!ptr)
 		return NULL;
 
+	*ptr = size;
 	if (!VirtualProtect((void*)ptr, size, PAGE_EXECUTE, &oldprot)) {
 		VirtualFree((void*)ptr, 0, MEM_RELEASE);
 		return NULL;
 	}
-	VirtualProtect((void*)ptr, size, oldprot, &oldprot);
 
-	*ptr++ = size;
-
-	return ptr;
+	return ptr + 1;
 }
 
 SLJIT_API_FUNC_ATTRIBUTE void sljit_free_exec(void* ptr)

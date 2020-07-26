@@ -713,6 +713,7 @@ SLJIT_API_FUNC_ATTRIBUTE void* sljit_generate_code(struct sljit_compiler *compil
 		label = label->next;
 	}
 
+	SLJIT_UPDATE_WX_FLAGS(code, code + size, 0);
 	do {
 		buf_ptr = (sljit_uw*)buf->memory;
 		buf_end = buf_ptr + (buf->used_size >> 2);

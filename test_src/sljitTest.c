@@ -110,6 +110,7 @@ void sljit_test_free_code(void* code, void *exec_allocator_data)
 		printf("Cannot allocate executable memory\n"); \
 		return; \
 	} \
+	SLJIT_UPDATE_WX_FLAGS(result, (sljit_u8 *)result + size, 0); \
 	memset(result, 255, size);
 
 #define FREE_EXEC(ptr) \
