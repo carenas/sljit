@@ -1070,6 +1070,7 @@ SLJIT_API_FUNC_ATTRIBUTE void * sljit_generate_code(struct sljit_compiler *compi
 	SLJIT_ASSERT(!const_);
 	SLJIT_ASSERT(code_ptr - code <= (sljit_sw)compiler->size);
 
+	SLJIT_UPDATE_WX_FLAGS(code, code + compiler->size, 0);
 	jump = compiler->jumps;
 	while (jump) {
 		do {

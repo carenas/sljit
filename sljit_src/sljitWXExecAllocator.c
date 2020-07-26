@@ -54,9 +54,18 @@ SLJIT_API_FUNC_ATTRIBUTE void* sljit_malloc_exec(sljit_uw size)
 
 	if (ptr == MAP_FAILED) {
 		return NULL;
+	} else {
+		/* SELinux and others might restrict WX later */
+		if (mprotect((void*)ptr, size, PROT_EXEC) < 0) {
+			munmap((void*)ptr, size);
+			return NULL;
+		}
 	}
 
+	SLJIT_UPDATE_WX_FLAGS(ptr, ptr + 1, 0);
 	*ptr++ = size;
+	SLJIT_UPDATE_WX_FLAGS(ptr - 1, ptr, 1);
+
 	return ptr;
 }
 
@@ -100,9 +109,10 @@ SLJIT_API_FUNC_ATTRIBUTE void* sljit_malloc_exec(sljit_uw size)
 		VirtualFree((void*)ptr, 0, MEM_RELEASE);
 		return NULL;
 	}
-	VirtualProtect((void*)ptr, size, oldprot, &oldprot);
 
+	SLJIT_UPDATE_WX_FLAGS(ptr, ptr + 1, 0);
 	*ptr++ = size;
+	SLJIT_UPDATE_WX_FLAGS(ptr - 1, ptr, 1);
 
 	return ptr;
 }

@@ -517,6 +517,7 @@ SLJIT_API_FUNC_ATTRIBUTE void* sljit_generate_code(struct sljit_compiler *compil
 	put_label = compiler->put_labels;
 	executable_offset = SLJIT_EXEC_OFFSET(code);
 
+	SLJIT_UPDATE_WX_FLAGS(code, code + compiler->size, 0);
 	do {
 		buf_ptr = buf->memory;
 		buf_end = buf_ptr + buf->used_size;
