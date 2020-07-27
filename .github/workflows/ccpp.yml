@@ -1,0 +1,47 @@
+name: C/C++ CI
+
+on:
+  push:
+    branches:
+    - master
+    - rawhide
+    - next
+    path-ignore:
+    - 'ci/*'
+    - 'doc/**'
+    - 'README'
+    - '*_CHANGES'
+  pull_request:
+    branches:
+    - master
+    - rawhide
+    - next
+    - integration
+
+jobs:
+  linux:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: provision
+      run: ci/provision.sh
+    - name: check
+      run: ci/run.sh
+      env:
+        MAKEFLAGS: j2
+  windows:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        arch: [x86, x64]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Enable Developer Command Prompt
+      uses: ilammy/msvc-dev-cmd@v1.1.0
+      with:
+        arch: ${{matrix.arch}}
+    - name: check
+      shell: cmd
+      run: |
+        cl /D SLJIT_CONFIG_AUTO /Isljit_src /W3 test_src/sljitMain.c test_src/sljitTest.c sljit_src/sljitLir.c sljit_src/sljitUtils.c /link /out:sljit_test.exe
+        sljit_test -s
