@@ -1,0 +1,21 @@
+task:
+  name: FreeBSD
+  freebsd_instance:
+    matrix:
+      image_family: freebsd-13-0-snap
+      image_family: freebsd-12-1-snap
+
+  env:
+    CIRRUS_CLONE_DEPTH: 1
+    MAKEFLAGS: -j2
+    CFLAGS: -Wall -Wextra -Wno-sign-compare -Wno-shift-negative-value -Werror
+    matrix:
+      CPPFLAGS:
+      CPPFLAGS: -DSLJIT_WX_EXECUTABLE_ALLOCATOR
+
+  compile_script:
+    - make
+
+  test_script:
+    - ktrace bin/sljit_test
+    - kdump
