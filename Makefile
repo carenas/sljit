@@ -1,24 +1,5 @@
-ifdef CROSS_COMPILER
-CC = $(CROSS_COMPILER)
-else
-ifndef CC
-# default compiler
-CC = gcc
-endif
-endif
-
-ifndef EXTRA_CPPFLAGS
-EXTRA_CPPFLAGS=
-endif
-
-ifndef EXTRA_LDFLAGS
-EXTRA_LDFLAGS=
-endif
-
-CPPFLAGS = $(EXTRA_CPPFLAGS) -DSLJIT_CONFIG_AUTO=1 -Isljit_src
-CFLAGS += -O2 -Wall
-REGEX_CFLAGS += $(CFLAGS) -fshort-wchar
-LDFLAGS = $(EXTRA_LDFLAGS)
+CPPFLAGS += -DSLJIT_CONFIG_AUTO=1 -Isljit_src
+REGEX_CFLAGS = $(CFLAGS) -fshort-wchar
 
 BINDIR = bin
 SRCDIR = sljit_src
@@ -32,7 +13,7 @@ EXAMPLE_TARGET = $(BINDIR)/func_call $(BINDIR)/first_program $(BINDIR)/branch $(
 SLJIT_HEADERS = $(SRCDIR)/sljitLir.h $(SRCDIR)/sljitConfig.h $(SRCDIR)/sljitConfigInternal.h
 
 SLJIT_LIR_FILES = $(SRCDIR)/sljitLir.c $(SRCDIR)/sljitUtils.c \
-	$(SRCDIR)/sljitExecAllocator.c $(SRCDIR)/sljitProtExecAllocator.c \
+	$(SRCDIR)/sljitExecAllocator.c $(SRCDIR)/sljitProtExecAllocator.c $(SRCDIR)/sljitWXExecAllocator.c \
 	$(SRCDIR)/sljitNativeARM_32.c $(SRCDIR)/sljitNativeARM_T2_32.c $(SRCDIR)/sljitNativeARM_64.c \
 	$(SRCDIR)/sljitNativeMIPS_common.c $(SRCDIR)/sljitNativeMIPS_32.c $(SRCDIR)/sljitNativeMIPS_64.c \
 	$(SRCDIR)/sljitNativePPC_common.c $(SRCDIR)/sljitNativePPC_32.c $(SRCDIR)/sljitNativePPC_64.c \

@@ -437,6 +437,7 @@ SLJIT_API_FUNC_ATTRIBUTE void* sljit_generate_code(struct sljit_compiler *compil
 	code_ptr = (sljit_ins *)SLJIT_ADD_EXEC_OFFSET(code_ptr, executable_offset);
 
 	SLJIT_CACHE_FLUSH(code, code_ptr);
+	SLJIT_UPDATE_WX_FLAGS(code, code_ptr, 1);
 	return code;
 }
 
@@ -1016,6 +1017,7 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_get_float_register_index(sljit_s32 reg)
 SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_op_custom(struct sljit_compiler *compiler,
 	void *instruction, sljit_s32 size)
 {
+	SLJIT_UNUSED_ARG(size);
 	CHECK_ERROR();
 	CHECK(check_sljit_emit_op_custom(compiler, instruction, size));
 

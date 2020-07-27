@@ -6285,6 +6285,7 @@ static void test64(void)
 {
 	/* Test put label with false labels (small offsets).
 	   This code is allocator implementation dependent. */
+#if !(defined SLJIT_WX_EXECUTABLE_ALLOCATOR && SLJIT_WX_EXECUTABLE_ALLOCATOR)
 	executable_code code;
 	sljit_sw malloc_addr;
 	struct sljit_label label[4];
@@ -6298,10 +6299,12 @@ static void test64(void)
 	sljit_sw offs1 = 0x12345678;
 	sljit_sw offs2 = 0x12345678;
 #endif
+#endif /* !SLJIT_WX_EXECUTABLE_ALLOCATOR */
 
 	if (verbose)
 		printf("Run test64\n");
 
+#if !(defined SLJIT_WX_EXECUTABLE_ALLOCATOR && SLJIT_WX_EXECUTABLE_ALLOCATOR)
 	malloc_addr = (sljit_sw)SLJIT_MALLOC_EXEC(1024);
 
 	if (malloc_addr == 0) {
@@ -6379,6 +6382,7 @@ static void test64(void)
 	FAILED(buf[4] != label[2].addr, "test64 case 6 failed\n");
 
 	sljit_free_code(code.code);
+#endif
 	successful_tests++;
 }
 
