@@ -3,6 +3,7 @@ name: C/C++ CI
 on:
   push:
     branches:
+    - rawci
     - master
     - rawci
     - rawhide
@@ -22,6 +23,9 @@ on:
 jobs:
   linux:
     runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        allocator: [ "", "-DSLJIT_WX_EXECUTABLE_ALLOCATOR" ]
     steps:
     - uses: actions/checkout@v2
     - name: provision
@@ -30,6 +34,8 @@ jobs:
       run: ci/run.sh
       env:
         MAKEFLAGS: j2
+        CFLAGS: -Wall -Wextra -Wno-sign-compare -Wno-shift-negative-value
+        CPPFLAGS: ${{matrix.allocator}}
   windows:
     runs-on: windows-latest
     strategy:
