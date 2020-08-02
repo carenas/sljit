@@ -97,8 +97,16 @@ struct chunk_header {
 #define O_TMPFILE 020200000
 #endif
 
-#ifndef _GNU_SOURCE
+#if defined(__NetBSD__) || defined(__OpenBSD__) || defined(__FreeBSD__) || \
+	defined(__APPLE__)
+#define secure_getenv(name) issetugid() ?  NULL : getenv(name)
+#elif defined(__LINUX__) || defined(__sun__)
 char *secure_getenv(const char *name);
+#else
+#define secure_getenv(name) getenv(name)
+#endif
+
+#ifndef _GNU_SOURCE
 int mkostemp(char *template, int flags);
 #endif
 
@@ -189,6 +197,7 @@ static SLJIT_INLINE struct chunk_header* alloc_chunk(sljit_uw size)
 {
 	struct chunk_header *retval;
 	int fd;
+	void *ptr;
 
 	fd = create_tempfile();
 	if (fd == -1)
@@ -199,6 +208,8 @@ static SLJIT_INLINE struct chunk_header* alloc_chunk(sljit_uw size)
 		return NULL;
 	}
 
+	ptr = mmap(NULL, size, PROT_READ | PROT_EXEC, MAP_SHARED, fd, 0);
+
 	retval = (struct chunk_header *)mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
 	if (retval == MAP_FAILED) {
@@ -206,7 +217,7 @@ static SLJIT_INLINE struct chunk_header* alloc_chunk(sljit_uw size)
 		return NULL;
 	}
 
-	retval->executable = mmap(NULL, size, PROT_READ | PROT_EXEC, MAP_SHARED, fd, 0);
+	retval->executable = ptr;
 
 	if (retval->executable == MAP_FAILED) {
 		munmap((void *)retval, size);
