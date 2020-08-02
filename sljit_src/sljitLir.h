@@ -414,7 +414,7 @@ struct sljit_compiler {
 	/* Code size. */
 	sljit_uw size;
 	/* Relative offset of the executable mapping from the writable mapping. */
-	sljit_uw executable_offset;
+	sljit_sw executable_offset;
 	/* Executable size for statistical purposes. */
 	sljit_uw executable_size;
 

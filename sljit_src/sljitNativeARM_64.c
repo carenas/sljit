@@ -165,7 +165,7 @@ static SLJIT_INLINE sljit_sw detect_jump_type(struct sljit_jump *jump, sljit_ins
 		target_addr = jump->u.target;
 	else {
 		SLJIT_ASSERT(jump->flags & JUMP_LABEL);
-		target_addr = (sljit_uw)(code + jump->u.label->size) + (sljit_uw)executable_offset;
+		target_addr = (sljit_uw)code + jump->u.label->size + (sljit_uw)executable_offset;
 	}
 
 	diff = (sljit_sw)target_addr - (sljit_sw)(code_ptr + 4) - executable_offset;
