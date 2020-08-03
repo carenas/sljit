@@ -83,6 +83,12 @@
 
 static SLJIT_INLINE void* alloc_chunk(sljit_uw size)
 {
+	switch (GetSystemDEPPolicy()) {
+		case 2:
+		case 3:
+			SetProcessDEPPolicy(0);
+			break;
+	}
 	return VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
 }
 
