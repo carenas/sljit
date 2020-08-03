@@ -512,7 +512,7 @@ static void test7(void)
 	FAILED(buf[3] != 0x00A0A0A0, "test7 case 5 failed\n");
 	FAILED(buf[4] != 0x00FF80B0, "test7 case 6 failed\n");
 	FAILED(buf[5] != 0x00FF4040, "test7 case 7 failed\n");
-	FAILED(buf[6] != 0xa56c82c0, "test7 case 8 failed\n");
+	FAILED(buf[6] != (sljit_sw)0xa56c82c0, "test7 case 8 failed\n");
 	FAILED(buf[7] != 0x3b3a8095, "test7 case 9 failed\n");
 
 	sljit_free_code(code.code);
@@ -875,7 +875,7 @@ static void test11(void)
 	const4_addr = sljit_get_const_addr(const4);
 	sljit_free_compiler(compiler);
 
-	FAILED(code.func1((sljit_sw)&buf) != 0xf7afcdb7, "test11 case 1 failed\n");
+	FAILED(code.func1((sljit_sw)&buf) != (sljit_sw)0xf7afcdb7, "test11 case 1 failed\n");
 	FAILED(buf[0] != -0x81b9, "test11 case 2 failed\n");
 	FAILED(buf[1] != -65535, "test11 case 3 failed\n");
 	FAILED(buf[2] != word_value1, "test11 case 4 failed\n");
@@ -888,7 +888,7 @@ static void test11(void)
 	FAILED(code.func1((sljit_sw)&buf) != -60089, "test11 case 5 failed\n");
 	FAILED(buf[0] != -1, "test11 case 6 failed\n");
 	FAILED(buf[1] != word_value2, "test11 case 7 failed\n");
-	FAILED(buf[2] != 0xbab0fea1, "test11 case 8 failed\n");
+	FAILED(buf[2] != (sljit_sw)0xbab0fea1, "test11 case 8 failed\n");
 
 	sljit_free_code(code.code);
 	successful_tests++;
@@ -2399,7 +2399,7 @@ static void test28(void)
 	struct sljit_compiler* compiler = sljit_create_compiler(NULL);
 	struct sljit_const* const1 = NULL;
 	struct sljit_label* label = NULL;
-	sljit_uw label_addr = 0;
+	sljit_sw label_addr = 0;
 	sljit_sw buf[5];
 
 	if (verbose)
@@ -4098,7 +4098,7 @@ static void test42(void)
 #endif
 
 	FAILED(buf[23] != SLJIT_W(0x0), "test42 case 24 failed\n");
-	FAILED(buf[24] != SLJIT_W(0xf2906b14), "test42 case 25 failed\n");
+	FAILED(buf[24] != (sljit_sw)0xf2906b14, "test42 case 25 failed\n");
 	FAILED(buf[25] != SLJIT_W(-0x8), "test42 case 26 failed\n");
 	FAILED(buf[26] != SLJIT_W(-0xa63c923), "test42 case 27 failed\n");
 
@@ -5838,7 +5838,7 @@ static void test60(void)
 	/* Test memory accesses with pre/post updates. */
 	executable_code code;
 	struct sljit_compiler* compiler = sljit_create_compiler(NULL);
-	sljit_s32 i;
+	size_t i;
 	sljit_s32 supported[10];
 	sljit_sw wbuf[18];
 	sljit_s8 bbuf[4];
@@ -5981,12 +5981,12 @@ static void test60(void)
 	for (i = 0; i < sizeof(expected); i++) {
 		if (expected[i]) {
 			if (supported[i] != SLJIT_SUCCESS) {
-				printf("tast60 case %d should be supported\n", i + 1);
+				printf("tast60 case %zu should be supported\n", i + 1);
 				return;
 			}
 		} else {
 			if (supported[i] == SLJIT_SUCCESS) {
-				printf("test60 case %d should not be supported\n", i + 1);
+				printf("test60 case %zu should not be supported\n", i + 1);
 				return;
 			}
 		}
@@ -6001,7 +6001,7 @@ static void test60(void)
 	FAILED(supported[3] == SLJIT_SUCCESS && ibuf[1] != -8765, "test60 case 8 failed\n");
 	FAILED(supported[3] == SLJIT_SUCCESS && wbuf[7] != (sljit_sw)(ibuf + 1), "test60 case 9 failed\n");
 	FAILED(supported[4] == SLJIT_SUCCESS && bbuf[0] != -121, "test60 case 10 failed\n");
-	FAILED(supported[4] == SLJIT_SUCCESS && wbuf[8] != (sljit_sw)(bbuf) - 128 * sizeof(sljit_s8), "test60 case 11 failed\n");
+	FAILED(supported[4] == SLJIT_SUCCESS && wbuf[8] != (sljit_sw)bbuf - 128, "test60 case 11 failed\n");
 	FAILED(supported[5] == SLJIT_SUCCESS && wbuf[9] != -881199, "test60 case 12 failed\n");
 	FAILED(supported[5] == SLJIT_SUCCESS && wbuf[10] != (sljit_sw)(wbuf + 9), "test60 case 13 failed\n");
 	FAILED(supported[6] == SLJIT_SUCCESS && wbuf[11] != -5678, "test60 case 14 failed\n");
@@ -6022,7 +6022,7 @@ static void test61(void)
 	/* Test float memory accesses with pre/post updates. */
 	executable_code code;
 	struct sljit_compiler* compiler = sljit_create_compiler(NULL);
-	sljit_s32 i;
+	size_t i;
 	sljit_s32 supported[6];
 	sljit_sw wbuf[6];
 	sljit_f64 dbuf[4];
@@ -6136,12 +6136,12 @@ static void test61(void)
 	for (i = 0; i < sizeof(expected); i++) {
 		if (expected[i]) {
 			if (supported[i] != SLJIT_SUCCESS) {
-				printf("tast61 case %d should be supported\n", i + 1);
+				printf("tast61 case %zu should be supported\n", i + 1);
 				return;
 			}
 		} else {
 			if (supported[i] == SLJIT_SUCCESS) {
-				printf("test61 case %d should not be supported\n", i + 1);
+				printf("test61 case %zu should not be supported\n", i + 1);
 				return;
 			}
 		}
@@ -6220,8 +6220,8 @@ static void test63(void)
 	struct sljit_label *label[2];
 	struct sljit_put_label *put_label[5];
 	struct sljit_compiler* compiler = sljit_create_compiler(NULL);
-	sljit_uw addr[2];
-	sljit_uw buf[4];
+	sljit_sw addr[2];
+	sljit_sw buf[4];
 #if (defined SLJIT_64BIT_ARCHITECTURE && SLJIT_64BIT_ARCHITECTURE)
 	sljit_sw offs = SLJIT_W(0x123456789012);
 #else
@@ -6371,7 +6371,7 @@ static void test64(void)
 		return;
 	}
 
-	FAILED(code.func1((sljit_sw)&buf) != label[3].addr, "test64 case 1 failed\n");
+	FAILED(code.func1((sljit_sw)&buf) != (sljit_sw)label[3].addr, "test64 case 1 failed\n");
 	FAILED(buf[0] != label[0].addr, "test64 case 2 failed\n");
 	FAILED(buf[1] != label[0].addr, "test64 case 3 failed\n");
 	FAILED(buf[2] != label[1].addr, "test64 case 4 failed\n");
