@@ -151,7 +151,7 @@ struct stack_fragment {
 struct stack {
 	struct stack_fragment *first;
 	struct stack_fragment *last;
-	int index;
+	size_t index;
 	int count;
 };
 
@@ -2567,7 +2567,7 @@ void regex_continue_match_debug(struct regex_match *match, const regex_char_t *i
 		current = match->head;
 		ptr = match->current;
 		while (current != 0) {
-			SLJIT_ASSERT(current >= 0 && current < len * sizeof(sljit_sw));
+			SLJIT_ASSERT(current >= 0 && current < len * (sljit_sw)sizeof(sljit_sw));
 			SLJIT_ASSERT((current % (no_states * sizeof(sljit_sw))) == 0);
 			SLJIT_ASSERT(count > 0);
 			current = ptr[(current / sizeof(sljit_sw)) + 1];
