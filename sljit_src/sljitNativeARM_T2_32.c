@@ -404,7 +404,7 @@ SLJIT_API_FUNC_ATTRIBUTE void* sljit_generate_code(struct sljit_compiler *compil
 
 				/* These structures are ordered by their address. */
 				if (label && label->size == half_count) {
-					label->addr = ((sljit_uw)SLJIT_ADD_EXEC_OFFSET(code_ptr, executable_offset)) | 0x1;
+					label->addr = (SLJIT_ADD_EXEC_OFFSET(code_ptr, executable_offset)) | 0x1;
 					label->size = code_ptr - code;
 					label = label->next;
 				}
@@ -432,7 +432,7 @@ SLJIT_API_FUNC_ATTRIBUTE void* sljit_generate_code(struct sljit_compiler *compil
 	} while (buf);
 
 	if (label && label->size == half_count) {
-		label->addr = ((sljit_uw)SLJIT_ADD_EXEC_OFFSET(code_ptr, executable_offset)) | 0x1;
+		label->addr = (SLJIT_ADD_EXEC_OFFSET(code_ptr, executable_offset)) | 0x1;
 		label->size = code_ptr - code;
 		label = label->next;
 	}

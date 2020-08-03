@@ -709,7 +709,7 @@ SLJIT_API_FUNC_ATTRIBUTE void* sljit_generate_code(struct sljit_compiler *compil
 	put_label = compiler->put_labels;
 
 	if (label && label->size == 0) {
-		label->addr = (sljit_uw)SLJIT_ADD_EXEC_OFFSET(code, executable_offset);
+		label->addr = SLJIT_ADD_EXEC_OFFSET(code, executable_offset);
 		label = label->next;
 	}
 
@@ -736,7 +736,7 @@ SLJIT_API_FUNC_ATTRIBUTE void* sljit_generate_code(struct sljit_compiler *compil
 						cpool_size = 0;
 						if (label && label->size == word_count) {
 							/* Points after the current instruction. */
-							label->addr = (sljit_uw)SLJIT_ADD_EXEC_OFFSET(code_ptr, executable_offset);
+							label->addr = SLJIT_ADD_EXEC_OFFSET(code_ptr, executable_offset);
 							label->size = code_ptr - code;
 							label = label->next;
 
@@ -769,7 +769,7 @@ SLJIT_API_FUNC_ATTRIBUTE void* sljit_generate_code(struct sljit_compiler *compil
 					}
 					if (label && label->size == word_count) {
 						/* code_ptr can be affected above. */
-						label->addr = (sljit_uw)SLJIT_ADD_EXEC_OFFSET(code_ptr + 1, executable_offset);
+						label->addr = SLJIT_ADD_EXEC_OFFSET(code_ptr + 1, executable_offset);
 						label->size = (code_ptr + 1) - code;
 						label = label->next;
 					}

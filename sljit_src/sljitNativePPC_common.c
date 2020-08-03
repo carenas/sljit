@@ -432,7 +432,7 @@ SLJIT_API_FUNC_ATTRIBUTE void* sljit_generate_code(struct sljit_compiler *compil
 				/* These structures are ordered by their address. */
 				if (label && label->size == word_count) {
 					/* Just recording the address. */
-					label->addr = (sljit_uw)SLJIT_ADD_EXEC_OFFSET(code_ptr, executable_offset);
+					label->addr = SLJIT_ADD_EXEC_OFFSET(code_ptr, executable_offset);
 					label->size = code_ptr - code;
 					label = label->next;
 				}
@@ -500,7 +500,7 @@ SLJIT_API_FUNC_ATTRIBUTE void* sljit_generate_code(struct sljit_compiler *compil
 	} while (buf);
 
 	if (label && label->size == word_count) {
-		label->addr = (sljit_uw)SLJIT_ADD_EXEC_OFFSET(code_ptr, executable_offset);
+		label->addr = SLJIT_ADD_EXEC_OFFSET(code_ptr, executable_offset);
 		label->size = code_ptr - code;
 		label = label->next;
 	}
@@ -525,7 +525,7 @@ SLJIT_API_FUNC_ATTRIBUTE void* sljit_generate_code(struct sljit_compiler *compil
 			if (jump->flags & PATCH_B) {
 				if (jump->flags & IS_COND) {
 					if (!(jump->flags & PATCH_ABS_B)) {
-						addr -= (sljit_uw)SLJIT_ADD_EXEC_OFFSET(buf_ptr, executable_offset);
+						addr -= SLJIT_ADD_EXEC_OFFSET(buf_ptr, executable_offset);
 						SLJIT_ASSERT((sljit_sw)addr <= 0x7fff && (sljit_sw)addr >= -0x8000);
 						*buf_ptr = BCx | (addr & 0xfffc) | ((*buf_ptr) & 0x03ff0001);
 					}
@@ -536,7 +536,7 @@ SLJIT_API_FUNC_ATTRIBUTE void* sljit_generate_code(struct sljit_compiler *compil
 				}
 				else {
 					if (!(jump->flags & PATCH_ABS_B)) {
-						addr -= (sljit_uw)SLJIT_ADD_EXEC_OFFSET(buf_ptr, executable_offset);
+						addr -= SLJIT_ADD_EXEC_OFFSET(buf_ptr, executable_offset);
 						SLJIT_ASSERT((sljit_sw)addr <= 0x01ffffff && (sljit_sw)addr >= -0x02000000);
 						*buf_ptr = Bx | (addr & 0x03fffffc) | ((*buf_ptr) & 0x1);
 					}

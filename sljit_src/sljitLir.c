@@ -282,9 +282,9 @@
 #endif
 
 #if (defined SLJIT_PROT_EXECUTABLE_ALLOCATOR && SLJIT_PROT_EXECUTABLE_ALLOCATOR)
-#define SLJIT_ADD_EXEC_OFFSET(ptr, exec_offset) ((sljit_u8 *)(ptr) + (exec_offset))
+#define SLJIT_ADD_EXEC_OFFSET(ptr, exec_offset) ((sljit_uw)(ptr) + (exec_offset))
 #else
-#define SLJIT_ADD_EXEC_OFFSET(ptr, exec_offset) ((sljit_u8 *)(ptr))
+#define SLJIT_ADD_EXEC_OFFSET(ptr, exec_offset) ((sljit_uw)(ptr))
 #endif
 
 #ifndef SLJIT_UPDATE_WX_FLAGS
