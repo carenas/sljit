@@ -8,7 +8,7 @@ task:
   env:
     CIRRUS_CLONE_DEPTH: 1
     MAKEFLAGS: -j2
-    CFLAGS: -Wall -Wextra -Wno-sign-compare -Wno-shift-negative-value -Werror
+    CFLAGS: -Wall -Wextra
     matrix:
       CPPFLAGS:
       CPPFLAGS: -DSLJIT_WX_EXECUTABLE_ALLOCATOR

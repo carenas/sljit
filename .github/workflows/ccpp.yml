@@ -34,7 +34,7 @@ jobs:
       run: ci/run.sh
       env:
         MAKEFLAGS: j2
-        CFLAGS: -Wall -Wextra -Wno-sign-compare -Wno-shift-negative-value
+        CFLAGS: -Wall -Wextra
         CPPFLAGS: ${{matrix.allocator}}
   windows:
     runs-on: windows-latest
