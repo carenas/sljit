@@ -76,7 +76,7 @@ static sljit_u8* generate_far_jump_code(struct sljit_jump *jump, sljit_u8 *code_
 
 static sljit_u8* generate_put_label_code(struct sljit_put_label *put_label, sljit_u8 *code_ptr, sljit_uw max_label)
 {
-	if (max_label > HALFWORD_MAX) {
+	if (max_label > HALFWORD_MAX && put_label->label->addr > HALFWORD_MAX) {
 		put_label->addr -= put_label->flags;
 		put_label->flags = PATCH_MD;
 		return code_ptr;
