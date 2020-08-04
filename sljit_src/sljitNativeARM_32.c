@@ -464,7 +464,7 @@ static SLJIT_INLINE void inline_set_jump_addr(sljit_uw jump_ptr, sljit_sw execut
 	sljit_uw *ptr = (sljit_uw *)jump_ptr;
 	sljit_uw *inst = (sljit_uw *)ptr[0];
 	sljit_uw mov_pc = ptr[1];
-	sljit_s32 bl = (mov_pc & 0x0000f000) != RD(TMP_PC);
+	sljit_s32 bl = (mov_pc & 0x0000f000) != (unsigned)RD(TMP_PC);
 	sljit_sw diff = (sljit_sw)(((sljit_sw)new_addr - (sljit_sw)(inst + 2) - executable_offset) >> 2);
 
 	SLJIT_UNUSED_ARG(executable_offset);
