@@ -574,7 +574,7 @@ static sljit_s32 load_immediate(struct sljit_compiler *compiler, sljit_s32 dst, 
 #define SET_FLAGS	0x0100000
 #define UNUSED_RETURN	0x0200000
 
-static sljit_s32 emit_op_imm(struct sljit_compiler *compiler, sljit_s32 flags, sljit_s32 dst, sljit_uw arg1, sljit_uw arg2)
+static sljit_s32 emit_op_imm(struct sljit_compiler *compiler, sljit_s32 flags, sljit_s32 dst, sljit_sw arg1, sljit_sw arg2)
 {
 	/* dst must be register, TMP_REG1
 	   arg1 must be register, imm
@@ -948,7 +948,7 @@ static sljit_s32 emit_set_delta(struct sljit_compiler *compiler, sljit_s32 dst, 
 		if (value <= 0xfff)
 			return push_inst32(compiler, ADDWI | RD4(dst) | RN4(reg) | IMM12(value));
 		value = get_imm(value);
-		if (value != INVALID_IMM)
+		if ((sljit_uw)value != INVALID_IMM)
 			return push_inst32(compiler, ADD_WI | RD4(dst) | RN4(reg) | value);
 	}
 	else {
@@ -956,7 +956,7 @@ static sljit_s32 emit_set_delta(struct sljit_compiler *compiler, sljit_s32 dst, 
 		if (value <= 0xfff)
 			return push_inst32(compiler, SUBWI | RD4(dst) | RN4(reg) | IMM12(value));
 		value = get_imm(value);
-		if (value != INVALID_IMM)
+		if ((sljit_uw)value != INVALID_IMM)
 			return push_inst32(compiler, SUB_WI | RD4(dst) | RN4(reg) | value);
 	}
 	return SLJIT_ERR_UNSUPPORTED;
