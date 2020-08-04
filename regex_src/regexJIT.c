@@ -165,7 +165,7 @@ static void stack_check(struct stack *stack)
 	if (!stack)
 		return;
 
-	SLJIT_ASSERT(stack->index >= 0 && stack->index < STACK_FRAGMENT_SIZE);
+	SLJIT_ASSERT(stack->index < STACK_FRAGMENT_SIZE);
 
 	if (stack->first == NULL) {
 		SLJIT_ASSERT(stack->first == NULL && stack->last == NULL);
@@ -179,7 +179,7 @@ static void stack_check(struct stack *stack)
 		found = 1;
 	}
 	else
-		SLJIT_ASSERT(stack->index >= 0 && stack->count >= 0);
+		SLJIT_ASSERT(stack->count >= 0);
 
 	SLJIT_ASSERT(stack->first->data.prev == NULL);
 	curr = stack->first;
