@@ -86,10 +86,8 @@ SLJIT_API_FUNC_ATTRIBUTE void SLJIT_FUNC sljit_grab_lock(void)
 		WaitForSingleObject(global_mutex, INFINITE);
 }
 
-SLJIT_API_FUNC_ATTRIBUTE void SLJIT_FUNC sljit_release_lock(void)
-{
-	ReleaseMutex(global_mutex);
-}
+#define SLJIT_GLOBAL_LOCK() sljit_grab_lock()
+#define SLJIT_GLOBAL_UNLOCK() ReleaseMutex(global_mutex)
 
 #else /* !_WIN32 */
 
@@ -97,15 +95,8 @@ SLJIT_API_FUNC_ATTRIBUTE void SLJIT_FUNC sljit_release_lock(void)
 
 static pthread_mutex_t global_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-SLJIT_API_FUNC_ATTRIBUTE void SLJIT_FUNC sljit_grab_lock(void)
-{
-	pthread_mutex_lock(&global_mutex);
-}
-
-SLJIT_API_FUNC_ATTRIBUTE void SLJIT_FUNC sljit_release_lock(void)
-{
-	pthread_mutex_unlock(&global_mutex);
-}
+#define SLJIT_GLOBAL_LOCK() pthread_mutex_lock(&global_mutex)
+#define SLJIT_GLOBAL_UNLOCK() pthread_mutex_unlock(&global_mutex)
 
 #endif /* _WIN32 */
 

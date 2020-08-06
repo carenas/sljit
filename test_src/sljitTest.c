@@ -135,8 +135,8 @@ static void test_exec_allocator(void)
 	FREE_EXEC(ptr2);
 #if (defined SLJIT_UTIL_GLOBAL_LOCK && SLJIT_UTIL_GLOBAL_LOCK)
 	/* Just call the global locks. */
-	sljit_grab_lock();
-	sljit_release_lock();
+	SLJIT_GLOBAL_LOCK();
+	SLJIT_GLOBAL_UNLOCK();
 #endif
 
 #if (defined SLJIT_EXECUTABLE_ALLOCATOR && SLJIT_EXECUTABLE_ALLOCATOR)
