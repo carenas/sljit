@@ -24,17 +24,22 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifdef SLJIT_TEST_DEVEL
 #include "sljitLir.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 
-int sljit_test(int argc, char* argv[]);
-
-void error(const char* str)
+static void error(const char* str)
 {
-	printf("An error occured: %s\n", str);
+	printf("An error occurred: %s\n", str);
 	exit(-1);
+}
+
+static void usage(const char *name)
+{
+	printf("%s: debug code in devel()\n", name);
+	exit(0);
 }
 
 union executable_code {
@@ -43,7 +48,7 @@ union executable_code {
 };
 typedef union executable_code executable_code;
 
-void devel(void)
+static void devel(void)
 {
 	executable_code code;
 
@@ -51,7 +56,7 @@ void devel(void)
 	sljit_sw buf[4];
 
 	if (!compiler)
-		error("Not enough of memory");
+		error("Not enough memory");
 	buf[0] = 5;
 	buf[1] = 12;
 	buf[2] = 0;
@@ -60,7 +65,8 @@ void devel(void)
 #if (defined SLJIT_VERBOSE && SLJIT_VERBOSE)
 	sljit_compiler_verbose(compiler, stdout);
 #endif
-	sljit_emit_enter(compiler, 0, SLJIT_ARG1(SW), 4, 5, 4, 0, 2 * sizeof(sljit_sw));
+
+	sljit_emit_enter(compiler, 0, SLJIT_ARG1(SW), 1, 1, 0, 0, 0);
 
 	sljit_emit_return(compiler, SLJIT_MOV, SLJIT_RETURN_REG, 0);
 
@@ -76,9 +82,19 @@ void devel(void)
 	printf("buf[3] = %ld\n", (long)buf[3]);
 	sljit_free_code(code.code);
 }
+#else
+int sljit_test(int argc, char* argv[]);
+#endif
 
 int main(int argc, char* argv[])
 {
-	/* devel(); */
+#ifdef SLJIT_TEST_DEVEL
+	if (argc > 1)
+		usage(argv[0]);
+
+	devel();
+	return 0;
+#else
 	return sljit_test(argc, argv);
+#endif
 }
