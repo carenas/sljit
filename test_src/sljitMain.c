@@ -27,7 +27,17 @@
 #ifdef SLJIT_TEST_DEVEL
 
 /*
- * cc -Wall -Wextra -DSLJIT_CONFIG_AUTO -DSLJIT_TEST_DEVEL -DHAVE_LIBCAPSTONE -DSLJIT_SINGLE_THREADED -DSLJIT_UTIL_GLOBAL_LOCK=0 -DSLJIT_UTIL_STACK=0 -Isljit_src -o bin/sljit_devtest -lcapstone sljit_src/sljitLir.c test_src/sljitMain.c
+ * cc -Wall -Wextra -DSLJIT_CONFIG_AUTO -DSLJIT_TEST_DEVEL -DHAVE_LIBCAPSTONE -DSLJIT_SINGLE_THREADED -DSLJIT_UTIL_GLOBAL_LOCK=0 -DSLJIT_UTIL_STACK=0 -Isljit_src -o bin/sljit_develtest sljit_src/sljitLir.c test_src/sljitMain.c -lcapstone
+ *
+ * you can also use a specific target with (ex: -DSLJIT_CONFIG_ARM_64) even
+ * if not running that (ex: x86_64) and therefore building a crosscompiler,
+ * but then you MUST provide also the  -DSLJIT_TEST_CROSSCOMPILER flag
+ * (which will enable the disassembler by default) to prevent jumping into
+ * the generated code and threfore crashing, unless it is known to be
+ * compatible (ex: Thumb-2 in armv8(AArch32 state)).
+ *
+ * WARNING: sljit is not designed for crosscompilation and might even fail
+ *          to build; if it build might generate wrong code.
  */
 
 #include "sljitLir.h"
@@ -47,7 +57,11 @@
 #ifdef HAVE_LIBCAPSTONE
 #include <capstone/capstone.h>
 
-static int disassemble_flag;
+#ifdef SLJIT_TEST_CROSSCOMPILER
+static int disassemble_flag = 1;
+#else
+static int disassemble_flag = 0;
+#endif
 
 #if (defined SLJIT_CONFIG_X86_64 && SLJIT_CONFIG_X86_64)
 #define CS_ARCH	CS_ARCH_X86
@@ -206,18 +220,21 @@ static void devel(void)
 	sljit_free_compiler(compiler);
 
 	base = SLJIT_FUNC_OFFSET(code.code);
-	printf("%zu bytes of code at: %" SLJIT_PRINT_X "\n", size, base);
+	printf("%zu bytes of %s code at 0x%" SLJIT_PRINT_X "\n", size,
+				sljit_get_platform_name(), base);
 #ifdef HAVE_LIBCAPSTONE
 	if (disassemble_flag) {
 		disassemble(code.code, size, base);
 		printf("\n");
 	}
 #endif
+#ifndef SLJIT_TEST_CROSSCOMPILER
 	printf("Function returned with %ld\n", (long)code.func((sljit_sw*)buf));
 	printf("buf[0] = %ld\n", (long)buf[0]);
 	printf("buf[1] = %ld\n", (long)buf[1]);
 	printf("buf[2] = %ld\n", (long)buf[2]);
 	printf("buf[3] = %ld\n", (long)buf[3]);
+#endif
 	sljit_free_code(code.code);
 }
 #else
