@@ -25,10 +25,132 @@
  */
 
 #ifdef SLJIT_TEST_DEVEL
+
+/*
+ * cc -Wall -Wextra -DSLJIT_CONFIG_AUTO -DSLJIT_TEST_DEVEL -DHAVE_LIBCAPSTONE -DSLJIT_SINGLE_THREADED -DSLJIT_UTIL_GLOBAL_LOCK=0 -DSLJIT_UTIL_STACK=0 -Isljit_src -o bin/sljit_devtest -lcapstone sljit_src/sljitLir.c test_src/sljitMain.c
+ */
+
 #include "sljitLir.h"
 
 #include <stdio.h>
-#include <stdlib.h>
+
+#ifdef SLJIT_64BIT_ARCHITECTURE
+#ifdef _WIN32
+#define SLJIT_PRINT_X	"016llx"
+#else
+#define SLJIT_PRINT_X	"016lx"
+#endif /* windows */
+#else
+#define SLJIT_PRINT_X	"08x"
+#endif
+
+#ifdef HAVE_LIBCAPSTONE
+#include <capstone/capstone.h>
+
+static int disassemble_flag;
+
+#if (defined SLJIT_CONFIG_X86_64 && SLJIT_CONFIG_X86_64)
+#define CS_ARCH	CS_ARCH_X86
+#define CS_MODE	CS_MODE_64
+#elif (defined SLJIT_CONFIG_X86_32 && SLJIT_CONFIG_X86_32)
+#define CS_ARCH	CS_ARCH_X86
+#define CS_MODE	CS_MODE_32
+#elif (defined SLJIT_CONFIG_ARM_64 && SLJIT_CONFIG_ARM_64)
+#define CS_ARCH	CS_ARCH_ARM64
+#ifdef SLJIT_BIG_ENDIAN
+#define CS_MODE	CS_MODE_BIG_ENDIAN
+#endif
+#elif (defined SLJIT_CONFIG_ARM && SLJIT_CONFIG_ARM)
+#define CS_ARCH	CS_ARCH_ARM
+#ifdef SLJIT_BIG_ENDIAN
+#if (defined SLJIT_CONFIG_ARM_THUMB2 && SLJIT_CONFIG_ARM_THUMB2)
+#define CS_MODE	CS_MODE_THUMB | CS_MODE_BIG_ENDIAN
+#else
+#define CS_MODE	CS_MODE_ARM | CS_MODE_BIG_ENDIAN
+#endif /* thumb */
+#else /* little endian */
+#if (defined SLJIT_CONFIG_ARM_THUMB2 && SLJIT_CONFIG_ARM_THUMB2)
+#define CS_MODE	CS_MODE_THUMB
+#else
+#define CS_MODE	CS_MODE_ARM
+#endif /* endianess */
+#endif /* thumb */
+#elif (defined SLJIT_CONFIG_PPC_64 && SLJIT_CONFIG_PPC_64)
+#define CS_ARCH	CS_ARCH_PPC
+#ifdef SLJIT_BIG_ENDIAN
+#define CS_MODE	CS_MODE_64 | CS_MODE_BIG_ENDIAN
+#else
+#define CS_MODE	CS_MODE_64
+#endif /* endianess */
+#elif (defined SLJIT_CONFIG_PPC_32 && SLJIT_CONFIG_PPC_32)
+#define CS_ARCH	CS_ARCH_PPC
+#ifdef SLJIT_BIG_ENDIAN
+#define CS_MODE	CS_MODE_BIG_ENDIAN
+#endif /* big endian */
+#elif (defined SLJIT_CONFIG_MIPS_64 && SLJIT_CONFIG_MIPS_64)
+#define CS_ARCH	CS_ARCH_MIPS
+#ifdef SLJIT_BIG_ENDIAN
+#define CS_MODE	CS_MODE_MIPS64 | CS_MODE_BIG_ENDIAN
+#else
+#define CS_MODE	CS_MODE_MIPS64
+#endif /* endianess */
+#elif (defined SLJIT_CONFIG_MIPS_32 && SLJIT_CONFIG_MIPS_32)
+#define CS_ARCH	CS_ARCH_MIPS
+#if (defined SLJIT_MIPS_REV && SLJIT_MIPS_REV >= 6)
+#ifdef SLJIT_BIG_ENDIAN
+#define CS_MODE	CS_MODE_MIPS32R6 | CS_MODE_BIG_ENDIAN
+#else
+#define CS_MODE	CS_MODE_MIPS32R6
+#endif /* endianess */
+#else /* < R6 */
+#ifdef SLJIT_BIG_ENDIAN
+#define CS_MODE	CS_MODE_MIPS32 | CS_MODE_BIG_ENDIAN
+#else
+#define CS_MODE	CS_MODE_MIPS32
+#endif /* endianess */
+#endif /* >= R6 */
+#elif (defined SLJIT_CONFIG_SPARC_32 && SLJIT_CONFIG_SPARC_32)
+#define CS_ARCH	CS_ARCH_SPARC
+#define CS_MODE	CS_MODE_BIG_ENDIAN
+#else
+#error "CPU architecture not supported"
+#endif
+#ifndef CS_MODE
+#define CS_MODE	CS_MODE_LITTLE_ENDIAN
+#endif
+
+static int disassemble(void *code, size_t size, sljit_uw base)
+{
+	csh handle;
+	cs_insn *insn;
+	size_t count, i, b;
+
+	if (cs_open(CS_ARCH, CS_MODE, &handle) != CS_ERR_OK)
+		return -1;
+
+	count = cs_disasm(handle, code, size, base, 0, &insn);
+
+	if (count > 0)
+		printf("disassembled:\n\n");
+	for (i = 0; i < count; i++) {
+		printf("0x%" PRIx64 ":\t", insn[i].address);
+		for (b = 0; b < insn[i].size; b++) {
+			if (b)
+				putchar(' ');
+			printf("%02x", insn[i].bytes[b]);
+		}
+#if (defined SLJIT_CONFIG_X86 && SLJIT_CONFIG_X86)
+		while (b++ < 8)
+			printf("   ");
+#endif
+		printf("\t%s\t%s\n", insn[i].mnemonic, insn[i].op_str);
+	}
+
+	cs_free(insn, count);
+
+	return (count) ? 0 : -1;
+}
+#endif
 
 static void error(const char* str)
 {
@@ -39,6 +161,10 @@ static void error(const char* str)
 static void usage(const char *name)
 {
 	printf("%s: debug code in devel()\n", name);
+#ifdef HAVE_LIBCAPSTONE
+	printf("\n");
+	printf("\t-d\tdissassemble generated code\n");
+#endif
 	exit(0);
 }
 
@@ -53,6 +179,8 @@ static void devel(void)
 	executable_code code;
 
 	struct sljit_compiler *compiler = sljit_create_compiler(NULL);
+	sljit_uw base;
+	size_t size;
 	sljit_sw buf[4];
 
 	if (!compiler)
@@ -71,10 +199,20 @@ static void devel(void)
 	sljit_emit_return(compiler, SLJIT_MOV, SLJIT_RETURN_REG, 0);
 
 	code.code = sljit_generate_code(compiler);
+#if (defined SLJIT_VERBOSE && SLJIT_VERBOSE)
+	printf("\n");
+#endif
+	size = sljit_get_generated_code_size(compiler);
 	sljit_free_compiler(compiler);
 
-	printf("Code at: %p\n", (void*)SLJIT_FUNC_OFFSET(code.code));
-
+	base = SLJIT_FUNC_OFFSET(code.code);
+	printf("%zu bytes of code at: %" SLJIT_PRINT_X "\n", size, base);
+#ifdef HAVE_LIBCAPSTONE
+	if (disassemble_flag) {
+		disassemble(code.code, size, base);
+		printf("\n");
+	}
+#endif
 	printf("Function returned with %ld\n", (long)code.func((sljit_sw*)buf));
 	printf("buf[0] = %ld\n", (long)buf[0]);
 	printf("buf[1] = %ld\n", (long)buf[1]);
@@ -89,9 +227,12 @@ int sljit_test(int argc, char* argv[]);
 int main(int argc, char* argv[])
 {
 #ifdef SLJIT_TEST_DEVEL
-	if (argc > 1)
-		usage(argv[0]);
-
+	if (argc > 1 && argv[1][0] == '-') {
+		if (argc != 2 || argv[1][1] != 'd' || argv[1][2] != 0)
+			usage(argv[0]);
+		else
+			disassemble_flag = 1;
+	}
 	devel();
 	return 0;
 #else
