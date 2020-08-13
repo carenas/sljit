@@ -61,6 +61,10 @@ static sljit_s32 successful_tests = 0;
 static sljit_s32 verbose = 0;
 static sljit_s32 silent = 0;
 
+#if !defined( __APPLE__) && !defined(_WIN32)
+static void *test64_ptr_hack;
+#endif
+
 #define FAILED(cond, text) \
 	if (SLJIT_UNLIKELY(cond)) { \
 		printf(text); \
@@ -73,6 +77,19 @@ static sljit_s32 silent = 0;
 		sljit_free_compiler(compiler); \
 		return; \
 	}
+
+#if SLJIT_WEAK_EXECUTABLE_ALLOCATOR && !defined( __APPLE__) && !defined(_WIN32)
+SLJIT_API_FUNC_ATTRIBUTE void *sljit_malloc_exec(sljit_uw size)
+{
+	if (SLJIT_LIKELY(!test64_ptr_hack))
+		return sljit_original_malloc_exec(size);
+
+	if ((sljit_uw)test64_ptr_hack == 64)
+		test64_ptr_hack = sljit_original_malloc_exec(size);
+
+	return test64_ptr_hack;
+}
+#endif
 
 static void cond_set(struct sljit_compiler *compiler, sljit_s32 dst, sljit_sw dstw, sljit_s32 type)
 {
@@ -6314,16 +6331,15 @@ static void test64(void)
 		printf("Run test64\n");
 
 #if !defined( __APPLE__) && !defined(_WIN32)
+	test64_ptr_hack = (void *)64;
 	malloc_addr = (sljit_sw)SLJIT_MALLOC_EXEC(1024);
 
-	if (malloc_addr == 0) {
+	if (!malloc_addr) {
 		printf("Cannot allocate executable memory.");
 		return;
 	}
 
 	malloc_addr += SLJIT_EXEC_OFFSET((void*)malloc_addr);
-
-	SLJIT_FREE_EXEC((void*)malloc_addr);
 
 	label[0].addr = 0x1234;
 	label[0].size = (sljit_uw)(512 - malloc_addr);
@@ -6378,13 +6394,10 @@ static void test64(void)
 	CHECK(compiler);
 	sljit_free_compiler(compiler);
 
-#if !(defined SLJIT_WX_EXECUTABLE_ALLOCATOR && SLJIT_WX_EXECUTABLE_ALLOCATOR)
-	/* WX allocator may not reuse the address. */
-	if ((sljit_sw)code.code < malloc_addr || (sljit_sw)code.code >= malloc_addr + 1024) {
+	if ((sljit_sw)code.code != malloc_addr) {
 		printf("test64 executable alloc estimation failed\n");
 		return;
 	}
-#endif
 
 	FAILED(code.func1((sljit_sw)&buf) != label[3].addr, "test64 case 1 failed\n");
 	FAILED(buf[0] != label[0].addr, "test64 case 2 failed\n");
@@ -6394,6 +6407,7 @@ static void test64(void)
 	FAILED(buf[4] != label[2].addr, "test64 case 6 failed\n");
 
 	sljit_free_code(code.code);
+	test64_ptr_hack = NULL;
 #endif
 	successful_tests++;
 }
