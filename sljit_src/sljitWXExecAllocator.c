@@ -48,6 +48,9 @@
 
 #include <sys/mman.h>
 
+#ifdef SLJIT_WEAK_EXECUTABLE_ALLOCATOR
+__attribute__((weak))
+#endif
 SLJIT_API_FUNC_ATTRIBUTE void* sljit_malloc_exec(sljit_uw size)
 {
 	sljit_uw* ptr;
@@ -62,6 +65,13 @@ SLJIT_API_FUNC_ATTRIBUTE void* sljit_malloc_exec(sljit_uw size)
 	*ptr++ = size;
 	return ptr;
 }
+
+#ifdef SLJIT_WEAK_EXECUTABLE_ALLOCATOR
+#ifndef __APPLE__
+SLJIT_API_FUNC_ATTRIBUTE void *sljit_original_malloc_exec(sljit_uw size) \
+	__attribute__((alias("sljit_malloc_exec")));
+#endif
+#endif
 
 SLJIT_API_FUNC_ATTRIBUTE void sljit_free_exec(void* ptr)
 {

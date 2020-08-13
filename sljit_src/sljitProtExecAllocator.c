@@ -312,6 +312,9 @@ static SLJIT_INLINE void sljit_remove_free_block(struct free_block *free_block)
 	}
 }
 
+#ifdef SLJIT_WEAK_EXECUTABLE_ALLOCATOR
+__attribute__((weak))
+#endif
 SLJIT_API_FUNC_ATTRIBUTE void* sljit_malloc_exec(sljit_uw size)
 {
 	struct chunk_header *chunk_header;
@@ -394,6 +397,13 @@ SLJIT_API_FUNC_ATTRIBUTE void* sljit_malloc_exec(sljit_uw size)
 	SLJIT_ALLOCATOR_UNLOCK();
 	return MEM_START(header);
 }
+
+#ifdef SLJIT_WEAK_EXECUTABLE_ALLOCATOR
+#ifndef __APPLE__
+SLJIT_API_FUNC_ATTRIBUTE void *sljit_original_malloc_exec(sljit_uw size) \
+	__attribute__((alias("sljit_malloc_exec")));
+#endif
+#endif
 
 SLJIT_API_FUNC_ATTRIBUTE void sljit_free_exec(void* ptr)
 {

@@ -6283,8 +6283,18 @@ static void test63(void)
 
 static void test64(void)
 {
-	/* Test put label with false labels (small offsets).
-	   This code is allocator implementation dependent. */
+	/* Test put label using labels with addr < 4GB. */
+
+	/*
+	   This code is not thread safe or portable and requires
+	   weak symbol support to patch the executable allocator.
+
+	   If you need different allocator behaviour it would be unwise
+	   to duplicate this code when you could instead provide sljit
+	   with a set of functions to implement your own allocator.
+	   (see: SLJIT_EXECUTABLE_ALLOCATOR )
+	 */
+#if !defined( __APPLE__) && !defined(_WIN32)
 	executable_code code;
 	sljit_sw malloc_addr;
 	struct sljit_label label[4];
@@ -6298,10 +6308,12 @@ static void test64(void)
 	sljit_sw offs1 = 0x12345678;
 	sljit_sw offs2 = 0x12345678;
 #endif
+#endif /* support weak symbols */
 
 	if (verbose)
 		printf("Run test64\n");
 
+#if !defined( __APPLE__) && !defined(_WIN32)
 	malloc_addr = (sljit_sw)SLJIT_MALLOC_EXEC(1024);
 
 	if (malloc_addr == 0) {
@@ -6382,6 +6394,7 @@ static void test64(void)
 	FAILED(buf[4] != label[2].addr, "test64 case 6 failed\n");
 
 	sljit_free_code(code.code);
+#endif
 	successful_tests++;
 }
 
