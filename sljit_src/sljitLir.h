@@ -345,8 +345,8 @@ struct sljit_memory_fragment {
 struct sljit_label {
 	struct sljit_label *next;
 	sljit_uw addr;
-	/* The maximum size difference. */
-	sljit_uw size;
+	/* The maximum offset from addr. */
+	sljit_sw offset;
 };
 
 struct sljit_jump {
