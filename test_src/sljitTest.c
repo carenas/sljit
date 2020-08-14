@@ -6314,16 +6314,16 @@ static void test64(void)
 	SLJIT_FREE_EXEC((void*)malloc_addr);
 
 	label[0].addr = 0x1234;
-	label[0].size = (sljit_uw)(512 - malloc_addr);
+	label[0].offset = 512 - malloc_addr;
 
 	label[1].addr = 0x12345678;
-	label[1].size = (sljit_uw)(0x123456 - malloc_addr);
+	label[1].offset = 0x123456 - malloc_addr;
 
 	label[2].addr = offs1;
-	label[2].size = (sljit_uw)(offs1 - malloc_addr);
+	label[2].offset = offs1 - malloc_addr;
 
 	label[3].addr = offs2;
-	label[3].size = (sljit_uw)(offs2 - malloc_addr);
+	label[3].offset = offs2 - malloc_addr;
 
 	compiler = sljit_create_compiler(NULL);
 

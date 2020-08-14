@@ -441,7 +441,7 @@ static sljit_u8* generate_near_jump_code(struct sljit_jump *jump, sljit_u8 *code
 	sljit_uw label_addr;
 
 	if (jump->flags & JUMP_LABEL)
-		label_addr = (sljit_uw)(code + jump->u.label->size);
+		label_addr = (sljit_uw)code + jump->u.label->offset;
 	else
 		label_addr = jump->u.target - executable_offset;
 
@@ -532,7 +532,7 @@ SLJIT_API_FUNC_ATTRIBUTE void* sljit_generate_code(struct sljit_compiler *compil
 				switch (*buf_ptr) {
 				case 0:
 					label->addr = (sljit_uw)SLJIT_ADD_EXEC_OFFSET(code_ptr, executable_offset);
-					label->size = code_ptr - code;
+					label->offset = code_ptr - code;
 					label = label->next;
 					break;
 				case 1:
@@ -557,7 +557,7 @@ SLJIT_API_FUNC_ATTRIBUTE void* sljit_generate_code(struct sljit_compiler *compil
 					SLJIT_ASSERT(put_label->label);
 					put_label->addr = (sljit_uw)code_ptr;
 #if (defined SLJIT_CONFIG_X86_64 && SLJIT_CONFIG_X86_64)
-					code_ptr = generate_put_label_code(put_label, code_ptr, (sljit_uw)(SLJIT_ADD_EXEC_OFFSET(code, executable_offset) + put_label->label->size));
+					code_ptr = generate_put_label_code(put_label, code_ptr, (sljit_uw)SLJIT_ADD_EXEC_OFFSET(code, executable_offset) + put_label->label->offset);
 #endif
 					put_label = put_label->next;
 					break;
@@ -2684,7 +2684,8 @@ SLJIT_API_FUNC_ATTRIBUTE struct sljit_label* sljit_emit_label(struct sljit_compi
 	CHECK_ERROR_PTR();
 	CHECK_PTR(check_sljit_emit_label(compiler));
 
-	if (compiler->last_label && compiler->last_label->size == compiler->size)
+	/* TODO: if compiler->size > MAX_INT, == will fail */
+	if (compiler->last_label && compiler->last_label->offset == compiler->size)
 		return compiler->last_label;
 
 	label = (struct sljit_label*)ensure_abuf(compiler, sizeof(struct sljit_label));
