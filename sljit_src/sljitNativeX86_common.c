@@ -1435,6 +1435,32 @@ static sljit_s32 emit_clz(struct sljit_compiler *compiler, sljit_s32 op_flags,
 	return SLJIT_SUCCESS;
 }
 
+static sljit_s32 emit_bswap(struct sljit_compiler *compiler,
+				sljit_s32 dst, sljit_s32 src)
+{
+	sljit_u8 *inst;
+	const sljit_uw inst_size = 2;
+
+	SLJIT_ASSERT(dst == src);
+	SLJIT_ASSERT(!(dst & SLJIT_MEM));
+
+#if (defined SLJIT_CONFIG_X86_64 && SLJIT_CONFIG_X86_64)
+	if (!(compiler->mode32)) {
+		inst = (sljit_u8*)ensure_buf(compiler, 1 + 1 + inst_size);
+		INC_SIZE(1 + inst_size);
+		*inst++ = REX_W | ((reg_map[src] < 8) ? 0 : REX_B);
+	} else
+#endif
+	{
+		inst = (sljit_u8*)ensure_buf(compiler, 1 + inst_size);
+		INC_SIZE(inst_size);
+	}
+	*inst++ = 0x0f;
+	*inst++ = 0xc8 | (reg_map[dst] & 0x7);
+
+	return SLJIT_SUCCESS;
+}
+
 SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_op1(struct sljit_compiler *compiler, sljit_s32 op,
 	sljit_s32 dst, sljit_sw dstw,
 	sljit_s32 src, sljit_sw srcw)
@@ -1565,6 +1591,12 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_op1(struct sljit_compiler *compile
 
 	case SLJIT_CLZ:
 		return emit_clz(compiler, op_flags, dst, dstw, src, srcw);
+
+	case SLJIT_BSWAP:
+		return emit_bswap(compiler, dst, src);
+
+	default:
+		return SLJIT_ERR_UNSUPPORTED;
 	}
 
 	return SLJIT_SUCCESS;

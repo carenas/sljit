@@ -6600,6 +6600,47 @@ static void test68(void)
 	successful_tests++;
 }
 
+static void test69(void)
+{
+	/* Test bswap */
+	executable_code code;
+	struct sljit_compiler *compiler = sljit_create_compiler(NULL);
+	sljit_sw buf[2];
+
+	if (verbose)
+		printf("Run test69\n");
+
+	FAILED(!compiler, "cannot create compiler\n");
+#if (defined SLJIT_64BIT_ARCHITECTURE && SLJIT_64BIT_ARCHITECTURE)
+	buf[0] = SLJIT_W(0x1122334455667788);
+#else
+	buf[0] = 0x21436587;
+#endif
+
+	sljit_emit_enter(compiler, 0, SLJIT_ARG1(SW), 2, 1, 0, 0, 0);
+	sljit_emit_op1(compiler, SLJIT_MOV, SLJIT_R0, 0, SLJIT_MEM1(SLJIT_S0), 0);
+	sljit_emit_op1(compiler, SLJIT_BSWAP, SLJIT_R0, 0, SLJIT_R0, 0);
+	sljit_emit_op1(compiler, SLJIT_MOV, SLJIT_R1, 0, SLJIT_R0, 0);
+	sljit_emit_op1(compiler, SLJIT_BSWAP32, SLJIT_R1, 0, SLJIT_R1, 0);
+	sljit_emit_op1(compiler, SLJIT_MOV, SLJIT_MEM1(SLJIT_S0), sizeof(sljit_sw), SLJIT_R1, 0);
+	sljit_emit_return(compiler, SLJIT_MOV, SLJIT_R0, 0);
+
+	code.code = sljit_generate_code(compiler);
+	CHECK(compiler);
+	sljit_free_compiler(compiler);
+
+#if (defined SLJIT_64BIT_ARCHITECTURE && SLJIT_64BIT_ARCHITECTURE)
+	FAILED(code.func1((sljit_sw)&buf) != 0x8877665544332211, "test69 case 1 failed\n");
+	FAILED(buf[1] != (buf[0] >> 32), "test 69 case 2 failed\n");
+#else
+	FAILED(code.func1((sljit_sw)&buf) != 0x87654321, "test69 case 1 failed\n");
+	FAILED(buf[1] != buf[0], "test 69 case 2 failed\n");
+#endif
+
+	sljit_free_code(code.code);
+	successful_tests++;
+}
+
 int sljit_test(int argc, char* argv[])
 {
 	sljit_s32 has_arg = (argc >= 2 && argv[1][0] == '-' && argv[1][2] == '\0');
@@ -6680,12 +6721,13 @@ int sljit_test(int argc, char* argv[])
 	test66();
 	test67();
 	test68();
+	test69();
 
 #if (defined SLJIT_EXECUTABLE_ALLOCATOR && SLJIT_EXECUTABLE_ALLOCATOR)
 	sljit_free_unused_memory_exec();
 #endif
 
-#	define TEST_COUNT 68
+#	define TEST_COUNT 69
 
 	printf("SLJIT tests: ");
 	if (successful_tests == TEST_COUNT)

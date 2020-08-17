@@ -961,6 +961,11 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_op0(struct sljit_compiler *compile
    Note: immediate source argument is not supported */
 #define SLJIT_CLZ			(SLJIT_OP1_BASE + 10)
 #define SLJIT_CLZ32			(SLJIT_CLZ | SLJIT_I32_OP)
+/* Byte swap endianess
+   Flags: - (may destroy flags)
+   Note: only register argument is valid */
+#define SLJIT_BSWAP			(SLJIT_OP1_BASE + 11)
+#define SLJIT_BSWAP32			(SLJIT_BSWAP | SLJIT_I32_OP)
 
 SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_op1(struct sljit_compiler *compiler, sljit_s32 op,
 	sljit_s32 dst, sljit_sw dstw,
