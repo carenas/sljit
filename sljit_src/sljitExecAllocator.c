@@ -271,6 +271,7 @@ SLJIT_API_FUNC_ATTRIBUTE void* sljit_malloc_exec(sljit_uw size)
 	free_block = free_blocks;
 	while (free_block) {
 		if (free_block->size >= size) {
+			SLJIT_UPDATE_WX_FLAGS(NULL, NULL, 0);
 			chunk_size = free_block->size;
 			if (chunk_size > size + 64) {
 				/* We just cut a block from the end of the free block. */
@@ -287,6 +288,7 @@ SLJIT_API_FUNC_ATTRIBUTE void* sljit_malloc_exec(sljit_uw size)
 			}
 			allocated_size += size;
 			header->size = size;
+			SLJIT_UPDATE_WX_FLAGS(NULL, NULL, 1);
 			SLJIT_ALLOCATOR_UNLOCK();
 			return MEM_START(header);
 		}
@@ -303,6 +305,7 @@ SLJIT_API_FUNC_ATTRIBUTE void* sljit_malloc_exec(sljit_uw size)
 	chunk_size -= sizeof(struct block_header);
 	total_size += chunk_size;
 
+	SLJIT_UPDATE_WX_FLAGS(NULL, NULL, 0);
 	header->prev_size = 0;
 	if (chunk_size > size + 64) {
 		/* Cut the allocated space into a free and a used block. */
@@ -323,6 +326,7 @@ SLJIT_API_FUNC_ATTRIBUTE void* sljit_malloc_exec(sljit_uw size)
 	}
 	next_header->size = 1;
 	next_header->prev_size = chunk_size;
+	SLJIT_UPDATE_WX_FLAGS(NULL, NULL, 1);
 	SLJIT_ALLOCATOR_UNLOCK();
 	return MEM_START(header);
 }
@@ -333,6 +337,7 @@ SLJIT_API_FUNC_ATTRIBUTE void sljit_free_exec(void* ptr)
 	struct free_block* free_block;
 
 	SLJIT_ALLOCATOR_LOCK();
+	SLJIT_UPDATE_WX_FLAGS(NULL, NULL, 0);
 	header = AS_BLOCK_HEADER(ptr, -(sljit_sw)sizeof(struct block_header));
 	allocated_size -= header->size;
 
@@ -368,7 +373,7 @@ SLJIT_API_FUNC_ATTRIBUTE void sljit_free_exec(void* ptr)
 			free_chunk(free_block, free_block->size + sizeof(struct block_header));
 		}
 	}
-
+	SLJIT_UPDATE_WX_FLAGS(NULL, NULL, 1);
 	SLJIT_ALLOCATOR_UNLOCK();
 }
 
@@ -378,6 +383,7 @@ SLJIT_API_FUNC_ATTRIBUTE void sljit_free_unused_memory_exec(void)
 	struct free_block* next_free_block;
 
 	SLJIT_ALLOCATOR_LOCK();
+	SLJIT_UPDATE_WX_FLAGS(NULL, NULL, 0);
 
 	free_block = free_blocks;
 	while (free_block) {
@@ -392,5 +398,6 @@ SLJIT_API_FUNC_ATTRIBUTE void sljit_free_unused_memory_exec(void)
 	}
 
 	SLJIT_ASSERT((total_size && free_blocks) || (!total_size && !free_blocks));
+	SLJIT_UPDATE_WX_FLAGS(NULL, NULL, 1);
 	SLJIT_ALLOCATOR_UNLOCK();
 }
