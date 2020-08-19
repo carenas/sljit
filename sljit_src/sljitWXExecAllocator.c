@@ -50,9 +50,6 @@
    restrictions and adding exceptions to your application is not possible.
 */
 
-#define SLJIT_UPDATE_WX_FLAGS(from, to, enable_exec) \
-	sljit_update_wx_flags((from), (to), (enable_exec))
-
 #ifndef _WIN32
 #include <sys/types.h>
 #include <sys/mman.h>
@@ -78,7 +75,8 @@ SLJIT_API_FUNC_ATTRIBUTE void sljit_free_exec(void* ptr)
 	munmap((void*)start_ptr, *start_ptr);
 }
 
-static void sljit_update_wx_flags(void *from, void *to, sljit_s32 enable_exec)
+SLJIT_API_FUNC_ATTRIBUTE void sljit_update_wx_flags(void *from, void *to,
+							sljit_s32 enable_exec)
 {
 	sljit_uw page_mask = (sljit_uw)get_page_alignment();
 	sljit_uw start = (sljit_uw)from;
@@ -129,7 +127,8 @@ SLJIT_API_FUNC_ATTRIBUTE void sljit_free_exec(void* ptr)
 	VirtualFree((void*)start, 0, MEM_RELEASE);
 }
 
-static void sljit_update_wx_flags(void *from, void *to, sljit_s32 enable_exec)
+SLJIT_API_FUNC_ATTRIBUTE void sljit_update_wx_flags(void *from, void *to,
+							sljit_s32 enable_exec)
 {
 	DWORD oldprot;
 	sljit_uw page_mask = (sljit_uw)get_page_alignment();
