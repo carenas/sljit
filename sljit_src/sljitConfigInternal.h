@@ -634,6 +634,10 @@ SLJIT_API_FUNC_ATTRIBUTE void sljit_update_wx_flags(void *from, void *to,
 							sljit_s32 enable_exec);
 #define SLJIT_UPDATE_WX_FLAGS(from, to, enable_exec) \
 	sljit_update_wx_flags((from), (to), (enable_exec))
+#elif __APPLE__
+SLJIT_API_FUNC_ATTRIBUTE void apple_update_wx_flags(sljit_s32 enable_exec);
+#define SLJIT_UPDATE_WX_FLAGS(from, to, enable_exec) \
+			apple_update_wx_flags(enable_exec)
 #else
 #define SLJIT_UPDATE_WX_FLAGS(from, to, enable_exec)
 #endif /* SLJIT_WX_EXECUTABLE_ALLOCATOR */

@@ -111,7 +111,8 @@ void sljit_test_free_code(void* code, void *exec_allocator_data)
 		return; \
 	} \
 	SLJIT_UPDATE_WX_FLAGS(result, (sljit_u8 *)result + size, 0); \
-	memset(result, 255, size);
+	memset(result, 255, size); \
+	SLJIT_UPDATE_WX_FLAGS(result, (sljit_u8 *)result + size, 1);
 
 #define FREE_EXEC(ptr) \
 	SLJIT_FREE_EXEC(((sljit_u8*)(ptr)) + SLJIT_EXEC_OFFSET(ptr), NULL);

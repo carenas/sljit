@@ -91,11 +91,12 @@ static SLJIT_INLINE void free_chunk(void *chunk, sljit_uw size)
 	VirtualFree(chunk, 0, MEM_RELEASE);
 }
 
-#else
+#else /* POSIX */
 
 #ifdef __APPLE__
 /* Configures TARGET_OS_OSX when appropriate */
 #include <TargetConditionals.h>
+#include <AvailabilityMacros.h>
 
 #if TARGET_OS_OSX && defined(MAP_JIT)
 #include <sys/utsname.h>
@@ -148,6 +149,16 @@ static SLJIT_INLINE int get_map_jit_flag()
 
 #endif /* MAP_JIT */
 
+SLJIT_API_FUNC_ATTRIBUTE void apple_update_wx_flags(sljit_s32 enable_exec)
+{
+	SLJIT_UNUSED_ARG(enable_exec);
+#ifdef __MAC_OS_X_VERSION_MAX_ALLOWED
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= 110000
+	pthread_jit_write_protect_np(!enable_exec);
+#endif
+#endif
+}
+
 #endif /* __APPLE__ */
 
 static SLJIT_INLINE void* alloc_chunk(sljit_uw size)
@@ -189,7 +200,7 @@ static SLJIT_INLINE void free_chunk(void *chunk, sljit_uw size)
 	munmap(chunk, size);
 }
 
-#endif
+#endif /* windows */
 
 /* --------------------------------------------------------------------- */
 /*  Common functions                                                     */
