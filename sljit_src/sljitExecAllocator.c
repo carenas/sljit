@@ -93,6 +93,26 @@ static SLJIT_INLINE void free_chunk(void *chunk, sljit_uw size)
 
 #else /* POSIX */
 
+struct chunk {
+	void *addr;
+	sljit_uw size;
+};
+
+static unsigned nchunks;
+static struct chunk *chunks;
+
+SLJIT_API_FUNC_ATTRIBUTE void sljit_update_wx_flags(sljit_s32 enable_exec)
+{
+	struct chunk *current = chunks;
+	int prot = (enable_exec ? PROT_EXEC : PROT_WRITE);
+	int i;
+
+	for (i = 0; i < nchunks; i++) {
+		mprotect(current->addr, current->size, PROT_READ | prot);
+		current++;
+	}
+}
+
 #ifdef __APPLE__
 /* Configures TARGET_OS_OSX when appropriate */
 #include <TargetConditionals.h>
@@ -155,16 +175,29 @@ SLJIT_API_FUNC_ATTRIBUTE void apple_update_wx_flags(sljit_s32 enable_exec)
 #ifdef __MAC_OS_X_VERSION_MAX_ALLOWED
 #if __MAC_OS_X_VERSION_MAX_ALLOWED >= 110000
 	pthread_jit_write_protect_np(!enable_exec);
+#else
+	sljit_update_wx_flags(enable_exec);
 #endif
 #endif
 }
 
 #endif /* __APPLE__ */
 
+#ifndef HAVE_REALLOCARRAY
+static inline void *reallocarray(void *array, size_t nmemb, size_t size)
+{
+	void *ptr = realloc(array, nmemb * size);
+	if (!ptr)
+		return NULL;
+
+	return ptr;
+}
+#endif
+
 static SLJIT_INLINE void* alloc_chunk(sljit_uw size)
 {
 	void *retval;
-	const int prot = PROT_READ | PROT_WRITE | PROT_EXEC;
+	const int prot = PROT_READ /* | PROT_WRITE */ | PROT_EXEC;
 
 #ifdef MAP_ANON
 
@@ -191,6 +224,9 @@ static SLJIT_INLINE void* alloc_chunk(sljit_uw size)
 			retval = NULL;
 		}
 	}
+	chunks = reallocarray(chunks, ++nchunks, sizeof(struct chunk));
+	chunks[nchunks - 1].addr = retval;
+	chunks[nchunks - 1].size = size;
 
 	return retval;
 }
@@ -198,6 +234,7 @@ static SLJIT_INLINE void* alloc_chunk(sljit_uw size)
 static SLJIT_INLINE void free_chunk(void *chunk, sljit_uw size)
 {
 	munmap(chunk, size);
+	--nchunks;
 }
 
 #endif /* windows */
