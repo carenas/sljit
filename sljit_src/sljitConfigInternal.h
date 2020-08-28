@@ -162,8 +162,6 @@ extern "C" {
 #define SLJIT_CONFIG_SPARC_32 1
 #elif defined(__tilegx__)
 #define SLJIT_CONFIG_TILEGX 1
-#elif defined(__s390x__)
-#define SLJIT_CONFIG_S390X 1
 #else
 /* Unsupported architecture */
 #define SLJIT_CONFIG_UNSUPPORTED 1
