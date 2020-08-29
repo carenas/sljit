@@ -94,7 +94,6 @@ static SLJIT_INLINE void free_chunk(void *chunk, sljit_uw size)
 #else /* POSIX */
 
 #ifdef __APPLE__
-#include <AvailabilityMacros.h>
 /*
    On macOS systems, returns MAP_JIT if it is defined _and_ we're running on a
    version where it's OK to have more than one JIT block or where MAP_JIT is
@@ -103,7 +102,8 @@ static SLJIT_INLINE void free_chunk(void *chunk, sljit_uw size)
 */
 #ifdef MAP_JIT
 #include <TargetConditionals.h>
-#if TARGET_OS_OSX && (defined SLJIT_CONFIG_X86 && SLJIT_CONFIG_X86)
+#if TARGET_OS_OSX
+#if defined SLJIT_CONFIG_X86 && SLJIT_CONFIG_X86
 #ifdef MAP_ANON
 #include <sys/utsname.h>
 #include <stdlib.h>
@@ -115,19 +115,14 @@ static SLJIT_INLINE int get_map_jit_flag()
 	sljit_sw page_size;
 	void *ptr;
 	struct utsname name;
-	int os_kernel_major;
 	static int map_jit_flag = -1;
 
 	if (map_jit_flag < 0) {
 		map_jit_flag = 0;
 		uname(&name);
-		os_kernel_major = atoi(name.release);
 
-		/* this is likely to cause problems as seen in PCRE BUG2334 */
-		if (os_kernel_major > 19)
-			map_jit_flag = MAP_JIT;
-		else if (os_kernel_major >= 18) {
-			/* Kernel version for 10.14.0 (Mojave) or later */
+		/* Kernel version for 10.14.0 (Mojave) or later */
+		if (atoi(name.release) >= 18) {
 			page_size = get_page_alignment() + 1;
 			/* Only use MAP_JIT if a hardened runtime is used */
 			ptr = mmap(NULL, page_size, PROT_WRITE | PROT_EXEC,
@@ -142,17 +137,13 @@ static SLJIT_INLINE int get_map_jit_flag()
 	return map_jit_flag;
 }
 #endif /* MAP_ANON */
-#else /* !x86_macOS */
-#define SLJIT_MAP_JIT	(MAP_JIT)
-#endif /* TARGET_OS_OSX && SLJIT_CONFIG_X86 */
-#else /* !MAP_JIT */
-#define SLJIT_MAP_JIT	(0)
-#endif /* MAP_JIT */
-
-#if defined(MAC_OS_X_VERSION_MAX_ALLOWED) \
-	&& MAC_OS_X_VERSION_MAX_ALLOWED >= 110000
+#else /* !SLJIT_CONFIG_X86 */
+#if !(defined SLJIT_CONFIG_ARM && SLJIT_CONFIG_ARM)
+#error Unsupported architecture
+#endif /* SLJIT_CONFIG_ARM */
 #include <pthread.h>
 
+#define SLJIT_MAP_JIT	(MAP_JIT)
 #define SLJIT_UPDATE_WX_FLAGS(from, to, enable_exec) \
                         apple_update_wx_flags(enable_exec)
 
@@ -160,7 +151,13 @@ static SLJIT_INLINE void apple_update_wx_flags(sljit_s32 enable_exec)
 {
 	pthread_jit_write_protect_np(!enable_exec);
 }
-#endif /* BigSur */
+#endif /* SLJIT_CONFIG_X86 */
+#else /* !TARGET_OS_OSX */
+#define SLJIT_MAP_JIT	(MAP_JIT)
+#endif /* TARGET_OS_OSX */
+#else /* !MAP_JIT */
+#define SLJIT_MAP_JIT	(0)
+#endif /* MAP_JIT */
 #endif /* __APPLE__ */
 #ifndef SLJIT_UPDATE_WX_FLAGS
 #define SLJIT_UPDATE_WX_FLAGS(from, to, enable_exec)
