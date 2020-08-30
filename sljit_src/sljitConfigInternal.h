@@ -318,8 +318,10 @@ extern "C" {
 #if (!defined SLJIT_CACHE_FLUSH && defined __has_builtin)
 #if __has_builtin(__builtin___clear_cache)
 
+#ifndef __APPLE__
 #define SLJIT_CACHE_FLUSH(from, to) \
 	__builtin___clear_cache((char*)(from), (char*)(to))
+#endif
 
 #endif /* __has_builtin(__builtin___clear_cache) */
 #endif /* (!defined SLJIT_CACHE_FLUSH && defined __has_builtin) */
@@ -332,7 +334,7 @@ extern "C" {
 #define SLJIT_CACHE_FLUSH(from, to)
 
 #elif defined __APPLE__
-
+#include <libkern/OSCacheControl.h>
 /* Supported by all macs since Mac OS 10.5.
    However, it does not work on non-jailbroken iOS devices,
    although the compilation is successful. */

@@ -38,3 +38,17 @@ script:
         codesign -s "$CERTIFICATE_ID" --timestamp --entitlements doc/apple/default.ent -o runtime bin/sljit_test
         bin/sljit_test -s
       else echo SKIPPED; fi
+  - |
+      make clean
+      case $TRAVIS_OSX_IMAGE in
+        xcode7.3)
+          TARGET='-arch armv7'
+          ;;
+        xcode8.3)
+          TARGET='-arch armv7 -arch arm64'
+          ;;
+        *)
+          TARGET='-arch arm64'
+          ;;
+      esac
+      CC="xcrun -sdk iphoneos clang $TARGET" make
