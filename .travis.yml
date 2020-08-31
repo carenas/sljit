@@ -19,8 +19,22 @@ jobs:
       osx_image: xcode12u
     - name: "macOS 10.14"
       osx_image: xcode11
-    - name: "macOS default"
+    - name: "macOS 10.12"
+      osx_image: xcode8.3
+    - name: "macOS oldest"
+      osx_image: xcode7.3
+    - name: "macOS 32bit"
+      env: CC='cc -m32'
+    - name: "macOS default (10.13 with Xcode 9.4.1)"
+
+before_script:
+  - if [ "$TRAVIS_OS_NAME" = osx ]; then ci/add-osx-cert.sh; fi
 
 script:
   - make bin/sljit_test
   - bin/sljit_test -s
+  - |
+      if [ $(uname -r | cut -d . -f 1) -ge 17 ]; then
+        codesign -s "$CERTIFICATE_ID" --timestamp --entitlements doc/apple/default.ent -o runtime bin/sljit_test
+        bin/sljit_test -s
+      else echo SKIPPED; fi
