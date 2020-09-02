@@ -15,7 +15,7 @@ ifndef EXTRA_LDFLAGS
 EXTRA_LDFLAGS=
 endif
 
-CPPFLAGS = $(EXTRA_CPPFLAGS) -DSLJIT_CONFIG_AUTO=1 -Isljit_src
+CPPFLAGS = $(EXTRA_CPPFLAGS) -Isljit_src
 CFLAGS += -O2 -Wall
 REGEX_CFLAGS += $(CFLAGS) -fshort-wchar
 LDFLAGS = $(EXTRA_LDFLAGS)
@@ -32,7 +32,7 @@ EXAMPLE_TARGET = $(BINDIR)/func_call $(BINDIR)/first_program $(BINDIR)/branch $(
 SLJIT_HEADERS = $(SRCDIR)/sljitLir.h $(SRCDIR)/sljitConfig.h $(SRCDIR)/sljitConfigInternal.h
 
 SLJIT_LIR_FILES = $(SRCDIR)/sljitLir.c $(SRCDIR)/sljitUtils.c \
-	$(SRCDIR)/sljitExecAllocator.c $(SRCDIR)/sljitProtExecAllocator.c \
+	$(SRCDIR)/sljitExecAllocator.c $(SRCDIR)/sljitProtExecAllocator.c $(SRCDIR)/sljitWXExecAllocator.c \
 	$(SRCDIR)/sljitNativeARM_32.c $(SRCDIR)/sljitNativeARM_T2_32.c $(SRCDIR)/sljitNativeARM_64.c \
 	$(SRCDIR)/sljitNativeMIPS_common.c $(SRCDIR)/sljitNativeMIPS_32.c $(SRCDIR)/sljitNativeMIPS_64.c \
 	$(SRCDIR)/sljitNativePPC_common.c $(SRCDIR)/sljitNativePPC_32.c $(SRCDIR)/sljitNativePPC_64.c \
@@ -57,17 +57,14 @@ $(BINDIR)/sljitLir.o : $(BINDIR)/.keep $(SLJIT_LIR_FILES) $(SLJIT_HEADERS)
 $(BINDIR)/sljitMain.o : $(TESTDIR)/sljitMain.c $(BINDIR)/.keep $(SLJIT_HEADERS)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(TESTDIR)/sljitMain.c
 
-$(BINDIR)/sljitTest.o : $(TESTDIR)/sljitTest.c $(BINDIR)/.keep $(SLJIT_HEADERS)
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(TESTDIR)/sljitTest.c
-
 $(BINDIR)/regexMain.o : $(REGEXDIR)/regexMain.c $(BINDIR)/.keep $(SLJIT_HEADERS)
 	$(CC) $(CPPFLAGS) $(REGEX_CFLAGS) -c -o $@ $(REGEXDIR)/regexMain.c
 
 $(BINDIR)/regexJIT.o : $(REGEXDIR)/regexJIT.c $(BINDIR)/.keep $(SLJIT_HEADERS) $(REGEXDIR)/regexJIT.h
 	$(CC) $(CPPFLAGS) $(REGEX_CFLAGS) -c -o $@ $(REGEXDIR)/regexJIT.c
 
-$(BINDIR)/sljit_test: $(BINDIR)/.keep $(BINDIR)/sljitMain.o $(BINDIR)/sljitTest.o $(BINDIR)/sljitLir.o
-	$(CC) $(CFLAGS) $(LDFLAGS) $(BINDIR)/sljitMain.o $(BINDIR)/sljitTest.o $(BINDIR)/sljitLir.o -o $@ -lm -lpthread
+$(BINDIR)/sljit_test: $(BINDIR)/.keep $(BINDIR)/sljitMain.o $(TESTDIR)/sljitTest.c $(SRCDIR)/sljitLir.c $(SLJIT_LIR_FILES) $(SLJIT_HEADERS) $(TESTDIR)/sljitConfigPre.h $(TESTDIR)/sljitConfigPost.h
+	$(CC) $(CPPFLAGS) -DSLJIT_HAVE_CONFIG_PRE=1 -I$(TESTDIR) $(CFLAGS) $(LDFLAGS) $(BINDIR)/sljitMain.o $(TESTDIR)/sljitTest.c $(SRCDIR)/sljitLir.c -o $@ -lm -lpthread
 
 $(BINDIR)/regex_test: $(BINDIR)/.keep $(BINDIR)/regexMain.o $(BINDIR)/regexJIT.o $(BINDIR)/sljitLir.o
 	$(CC) $(CFLAGS) $(LDFLAGS) $(BINDIR)/regexMain.o $(BINDIR)/regexJIT.o $(BINDIR)/sljitLir.o -o $@ -lm -lpthread

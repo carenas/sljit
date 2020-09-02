@@ -506,7 +506,7 @@ SLJIT_API_FUNC_ATTRIBUTE void* sljit_generate_code(struct sljit_compiler *compil
 	reverse_buf(compiler);
 
 	/* Second code generation pass. */
-	code = (sljit_u8*)SLJIT_MALLOC_EXEC(compiler->size);
+	code = (sljit_u8*)SLJIT_MALLOC_EXEC(compiler->size, compiler->exec_allocator_data);
 	PTR_FAIL_WITH_EXEC_IF(code);
 	buf = compiler->buf;
 
@@ -557,7 +557,7 @@ SLJIT_API_FUNC_ATTRIBUTE void* sljit_generate_code(struct sljit_compiler *compil
 					SLJIT_ASSERT(put_label->label);
 					put_label->addr = (sljit_uw)code_ptr;
 #if (defined SLJIT_CONFIG_X86_64 && SLJIT_CONFIG_X86_64)
-					code_ptr = generate_put_label_code(put_label, code_ptr, (sljit_uw)(SLJIT_ADD_EXEC_OFFSET(code, executable_offset) + put_label->label->size));
+					code_ptr = generate_put_label_code(put_label, code_ptr, (sljit_uw)SLJIT_ADD_EXEC_OFFSET(code, executable_offset) + put_label->label->size);
 #endif
 					put_label = put_label->next;
 					break;
@@ -629,7 +629,11 @@ SLJIT_API_FUNC_ATTRIBUTE void* sljit_generate_code(struct sljit_compiler *compil
 	compiler->error = SLJIT_ERR_COMPILED;
 	compiler->executable_offset = executable_offset;
 	compiler->executable_size = code_ptr - code;
-	return (void*)(code + executable_offset);
+
+	code = (sljit_u8*)SLJIT_ADD_EXEC_OFFSET(code, executable_offset);
+
+	SLJIT_UPDATE_WX_FLAGS(code, (sljit_u8*)SLJIT_ADD_EXEC_OFFSET(code_ptr, executable_offset), 1);
+	return (void*)code;
 }
 
 SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_has_cpu_feature(sljit_s32 feature_type)
@@ -796,9 +800,10 @@ static SLJIT_INLINE sljit_s32 adjust_shadow_stack(struct sljit_compiler *compile
 	sljit_s32 src, sljit_sw srcw, sljit_s32 base, sljit_sw disp)
 {
 #if (defined SLJIT_CONFIG_X86_CET && SLJIT_CONFIG_X86_CET) && defined (__SHSTK__)
-	sljit_u8 *inst;
+	sljit_u8 *inst, *jz_after_cmp_inst;
+	sljit_uw size_jz_after_cmp_inst;
 
-	sljit_s32 size_before_rdssp_inst = compiler->size;
+	sljit_uw size_before_rdssp_inst = compiler->size;
 
 	/* Generate "RDSSP TMP_REG1". */
 	FAIL_IF(emit_rdssp(compiler, TMP_REG1));
@@ -833,8 +838,8 @@ static SLJIT_INLINE sljit_s32 adjust_shadow_stack(struct sljit_compiler *compile
 	FAIL_IF(!inst);
 	INC_SIZE(2);
 	*inst++ = get_jump_code(SLJIT_EQUAL) - 0x10;
-	sljit_uw size_jz_after_cmp_inst = compiler->size;
-	sljit_u8 *jz_after_cmp_inst = inst;
+	size_jz_after_cmp_inst = compiler->size;
+	jz_after_cmp_inst = inst;
 
 #if (defined SLJIT_CONFIG_X86_64 && SLJIT_CONFIG_X86_64)
 	/* REX_W is not necessary. */
@@ -3118,16 +3123,20 @@ SLJIT_API_FUNC_ATTRIBUTE void sljit_set_jump_addr(sljit_uw addr, sljit_uw new_ta
 {
 	SLJIT_UNUSED_ARG(executable_offset);
 
+	SLJIT_UPDATE_WX_FLAGS((void*)addr, (void*)(addr + sizeof(sljit_uw)), 0);
 #if (defined SLJIT_CONFIG_X86_32 && SLJIT_CONFIG_X86_32)
 	sljit_unaligned_store_sw((void*)addr, new_target - (addr + 4) - (sljit_uw)executable_offset);
 #else
 	sljit_unaligned_store_sw((void*)addr, (sljit_sw) new_target);
 #endif
+	SLJIT_UPDATE_WX_FLAGS((void*)addr, (void*)(addr + sizeof(sljit_uw)), 1);
 }
 
 SLJIT_API_FUNC_ATTRIBUTE void sljit_set_const(sljit_uw addr, sljit_sw new_constant, sljit_sw executable_offset)
 {
 	SLJIT_UNUSED_ARG(executable_offset);
 
+	SLJIT_UPDATE_WX_FLAGS((void*)addr, (void*)(addr + sizeof(sljit_sw)), 0);
 	sljit_unaligned_store_sw((void*)addr, new_constant);
+	SLJIT_UPDATE_WX_FLAGS((void*)addr, (void*)(addr + sizeof(sljit_sw)), 1);
 }
