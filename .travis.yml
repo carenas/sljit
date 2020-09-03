@@ -1,0 +1,43 @@
+language: c
+
+git:
+  depth: 1
+  quiet: true
+  submodules: false
+
+arch:
+  - s390x
+
+os:
+  - linux
+
+branches:
+  only:
+    - integration
+    - s390x-dev
+
+jobs:
+  include:
+    - name: Ubuntu oldest (gcc)
+      dist: xenial
+      compiler: gcc
+    - name: Ubuntu oldest (clang)
+      dist: xenial
+      compiler: clang
+    - name: Ubuntu latest (gcc)
+      dist: bionic
+      compiler: gcc
+    - name: Ubuntu latest (clang)
+      dist: bionic
+      compiler: clang
+
+script:
+  - make EXTRA_CPPFLAGS=-DSLJIT_CONFIG_S390X
+  - bin/regex_test -s
+  - bin/sljit_test -s
+  - make clean
+  - make EXTRA_CPPFLAGS='-DSLJIT_CONFIG_S390X -DSLJIT_PROT_EXECUTABLE_ALLOCATOR'
+  - bin/sljit_test -s
+  - make clean
+  - make EXTRA_CPPFLAGS='-DSLJIT_CONFIG_S390X -DSLJIT_WX_EXECUTABLE_ALLOCATOR'
+  - bin/sljit_test -s
