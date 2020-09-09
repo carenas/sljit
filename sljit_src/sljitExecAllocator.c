@@ -98,6 +98,12 @@ static SLJIT_INLINE void free_chunk(void *chunk, sljit_uw size)
 /* Configures TARGET_OS_OSX when appropriate */
 #include <TargetConditionals.h>
 
+#ifndef TARGET_OS_OSX
+#ifdef TARGET_OS_IPHONE
+#define TARGET_OS_OSX !TARGET_OS_IPHONE
+#endif /* iOS */
+#endif /* Xcode < 8 */
+
 #if TARGET_OS_OSX && defined(MAP_JIT)
 #include <sys/utsname.h>
 #endif /* TARGET_OS_OSX && MAP_JIT */
