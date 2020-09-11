@@ -15,8 +15,8 @@ ifndef EXTRA_LDFLAGS
 EXTRA_LDFLAGS=
 endif
 
-CPPFLAGS = $(EXTRA_CPPFLAGS) -Isljit_src
-CFLAGS += -O2 -Wall
+CPPFLAGS = $(EXTRA_CPPFLAGS) -DSLJIT_CONFIG_S390X -Isljit_src
+CFLAGS += -g -O0 -Wall -coverage -march=z14
 REGEX_CFLAGS += $(CFLAGS) -fshort-wchar
 LDFLAGS = $(EXTRA_LDFLAGS)
 
@@ -41,12 +41,20 @@ SLJIT_LIR_FILES = $(SRCDIR)/sljitLir.c $(SRCDIR)/sljitUtils.c \
 	$(SRCDIR)/sljitNativeS390X.c \
 	$(SRCDIR)/sljitNativeX86_common.c $(SRCDIR)/sljitNativeX86_32.c $(SRCDIR)/sljitNativeX86_64.c
 
-.PHONY: all clean examples
+.PHONY: all clean examples lcov
 
 all: $(TARGET)
 
 clean:
 	-$(RM) $(BINDIR)/*.o $(BINDIR)/sljit_test $(BINDIR)/regex_test $(EXAMPLE_TARGET)
+
+lcov: bin/sljit_test
+	lcov --base-directory . --directory . --zerocounters -q
+	bin/sljit_test
+	lcov --base-directory . --directory . -c -o sljit_test.info
+	lcov --remove sljit_test.info "/usr*" -o sljit_test.info
+	rm -rf ../test_coverage
+	genhtml -o ../test_coverage -t "sljit test coverage" --num-spaces 4 sljit_test.info
 
 $(BINDIR)/.keep :
 	mkdir -p $(BINDIR)
