@@ -102,6 +102,12 @@ static SLJIT_INLINE void free_chunk(void *chunk, sljit_uw size)
    On non-macOS systems, returns MAP_JIT if it is defined.
 */
 #include <TargetConditionals.h>
+#ifndef TARGET_OS_OSX
+#ifdef TARGET_OS_IPHONE
+#define TARGET_OS_OSX !TARGET_OS_IPHONE
+#endif /* iOS */
+#endif /* Xcode < 8 */
+
 #if TARGET_OS_OSX
 #if defined SLJIT_CONFIG_X86 && SLJIT_CONFIG_X86
 #ifdef MAP_ANON
