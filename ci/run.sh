@@ -1,0 +1,145 @@
+#!/bin/bash -e
+
+usage() {
+  echo "usage: $0 [--help] [windows|static]"
+  echo
+  echo "windows: use wine to test x86 32bit"
+  echo "static: workaround virtualization bugs that trigger qemu crashes"
+  exit 1
+}
+
+ARGC=$#
+if [ $ARGC -gt 0 ] && [ $ARGC -gt 2 ]; then
+  usage
+else
+  while [ $ARGC -gt 0 ]; do
+    case $1 in
+      windows)
+        WINE=1
+        ;;
+      static)
+        STATIC=" -static"
+        ;;
+      *)
+        usage
+    esac
+    ARGC=$(( ARGC - 1 ))
+    shift
+  done
+fi
+
+if [ -d bin ]; then
+  make clean
+fi
+
+if [ -e /etc/os-release ]; then
+  source /etc/os-release
+  VERSION_ID=${VERSION_ID/_*/} # non released version differences ignored
+  VERSION_ID=${VERSION_ID/./} # 20.04 becomes 2004 and 3.0.8 becomes 308
+else
+  VERSION_ID=0
+  ID=unknown
+fi
+
+if [ "$ID" = "ubuntu" ] && [ $VERSION_ID -ge 1910 ]; then
+  export EXTRA_CPPFLAGS="-mshstk"
+fi
+
+make CC=gcc
+bin/sljit_test -s
+
+case $ID in
+  ubuntu|debian|redhat|centos|fedora)
+    ARCH=$(uname -m)
+    if [ $? -eq 0 ] && [ "$ARCH" != "x86_64" ]; then
+      exit 0
+    fi
+    ;;
+  alpine)
+    ;;
+  *)
+    exit 0
+esac
+
+make clean
+if [ "$ID" = "alpine" ]; then
+  # multiple 64-bit compiler
+  for COMPILER in c89 clang pcc; do
+    make CC=$COMPILER
+    echo -n "$COMPILER: " && bin/sljit_test -s
+    make clean
+  done
+elif [ "$ID" != "debian" ] && [ "$ID" != "ubuntu" ]; then
+  # only do 32-bit as other architectures are custom
+  make CC="gcc -m32" sljit_test
+  bin/sljit_test -s
+else
+  unset EXTRA_CPPFLAGS
+
+  make CROSS_COMPILER=aarch64-linux-gnu-gcc sljit_test
+  qemu-aarch64-static -L /usr/aarch64-linux-gnu bin/sljit_test -s
+
+  make clean
+  make CROSS_COMPILER=arm-linux-gnueabihf-gcc sljit_test
+  qemu-arm-static -L /usr/arm-linux-gnueabihf bin/sljit_test -s
+
+  make clean
+  make CROSS_COMPILER="arm-linux-gnueabihf-gcc -marm" sljit_test
+  qemu-arm-static -L /usr/arm-linux-gnueabihf bin/sljit_test -s
+
+  make clean
+  make CROSS_COMPILER="arm-linux-gnueabihf-gcc -march=armv4 -marm" sljit_test
+  qemu-arm-static -L /usr/arm-linux-gnueabihf bin/sljit_test -s
+
+  if [ $VERSION_ID -ne 1910 ]; then
+    make clean
+    make CROSS_COMPILER=mips64el-linux-gnuabi64-gcc sljit_test
+    qemu-mips64el-static -L /usr/mips64el-linux-gnuabi64 bin/sljit_test -s
+
+    make clean
+    make CROSS_COMPILER="mips-linux-gnu-gcc$STATIC" sljit_test
+# requires qemu >= 3.1.0 (debian >= 10) or qemu <= 2.5.0 (ubuntu 16.04)
+# segfaults in debian 9 and ubuntu 18.04
+    if [[ ("$ID" = "ubuntu" && ($VERSION_ID -eq 1604 || $VERSION_ID -ge 1904)) ||
+          ("$ID" = "debian" && $VERSION_ID -eq 10) ]]; then
+      qemu-mips-static -L /usr/mips-linux-gnu bin/sljit_test -s
+    else
+      echo -e "SLJIT tests: \e[33mSKIPPED\e[0m"
+    fi
+  fi
+
+  # require workaround for debian multiarch gcc "bug" #955345
+  make clean
+  make CROSS_COMPILER="sparc64-linux-gnu-gcc -m32 -static" sljit_test
+  qemu-sparc32plus-static bin/sljit_test -s
+
+  make clean
+  make CROSS_COMPILER=powerpc64le-linux-gnu-gcc sljit_test
+# requires qemu > 2.5.0 and a fix for a bug that might be included in 4.2.0
+# throws invalid instruction in ubuntu 16.04
+# fails test54 case 19 in ubuntu 19.x and debian stable because of NaN bug
+  if [[ ("$ID" = "ubuntu" && ($VERSION_ID -eq 1804 || $VERSION_ID -ge 2004)) ||
+        ("$ID" = "debian" && $VERSION_ID -eq 10) ]]; then
+    qemu-ppc64le-static -L /usr/powerpc64le-linux-gnu bin/sljit_test -s
+  else
+    echo -e "SLJIT tests: \e[33mSKIPPED\e[0m"
+  fi
+
+  make clean
+  make CROSS_COMPILER="powerpc-linux-gnu-gcc$STATIC" sljit_test
+# requires qemu >= 4.2.0 or qemu <= 2.5.0 (ubuntu 16.04)
+# segfaults in debian 9 and ubuntu 18.04
+# fails test54 case 18 in debian 10 and ubuntu 18.04 thru 19.10 because of NaN
+  if [[ ($VERSION_ID -eq 1604 || $VERSION_ID -ge 2004) &&
+        "$ID" = "ubuntu" ]]; then
+    qemu-ppc-static -L /usr/powerpc-linux-gnu bin/sljit_test -s
+  else
+    echo -e "SLJIT tests: \e[33mSKIPPED\e[0m"
+  fi
+fi
+
+if [ ! -z "$WINE" ]; then
+  make clean
+  make CROSS_COMPILER=i686-w64-mingw32-gcc
+  wine ./bin/sljit_test -s
+fi
