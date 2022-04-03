@@ -1429,7 +1429,7 @@ static sljit_ins get_cc(struct sljit_compiler *compiler, sljit_s32 type)
 	case SLJIT_OVERFLOW:
 		if (!(compiler->status_flags_state & (SLJIT_CURRENT_FLAGS_ADD | SLJIT_CURRENT_FLAGS_SUB)))
 			return DA(0x9);
-		/* fallthrough */
+		fallthrough;
 
 	case SLJIT_UNORDERED_F64:
 		return DA(0x7);
@@ -1437,7 +1437,7 @@ static sljit_ins get_cc(struct sljit_compiler *compiler, sljit_s32 type)
 	case SLJIT_NOT_OVERFLOW:
 		if (!(compiler->status_flags_state & (SLJIT_CURRENT_FLAGS_ADD | SLJIT_CURRENT_FLAGS_SUB)))
 			return DA(0x1);
-		/* fallthrough */
+		fallthrough;
 
 	case SLJIT_ORDERED_F64:
 		return DA(0xf);

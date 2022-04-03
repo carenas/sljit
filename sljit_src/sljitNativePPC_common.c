@@ -2047,7 +2047,7 @@ static sljit_ins get_bo_bi_flags(struct sljit_compiler *compiler, sljit_s32 type
 	case SLJIT_NOT_CARRY:
 		if (compiler->status_flags_state & SLJIT_CURRENT_FLAGS_SUB)
 			return (4 << 21) | (2 << 16);
-		/* fallthrough */
+		fallthrough;
 
 	case SLJIT_EQUAL:
 		return (12 << 21) | (2 << 16);
@@ -2055,7 +2055,7 @@ static sljit_ins get_bo_bi_flags(struct sljit_compiler *compiler, sljit_s32 type
 	case SLJIT_CARRY:
 		if (compiler->status_flags_state & SLJIT_CURRENT_FLAGS_SUB)
 			return (12 << 21) | (2 << 16);
-		/* fallthrough */
+		fallthrough;
 
 	case SLJIT_NOT_EQUAL:
 		return (4 << 21) | (2 << 16);

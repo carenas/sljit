@@ -42,6 +42,33 @@ extern "C" {
 #endif
 
 /*
+ https://developers.redhat.com/blog/2017/03/10/wimplicit-fallthrough-in-gcc-7
+ TODO: update C check to more accurately match C21 when released
+ */
+#if defined(__has_attribute)
+#if __has_attribute(__fallthrough__)
+#define fallthrough	__attribute__((fallthrough))
+#endif
+#endif
+#if !defined(fallthrough) && defined(__GNUC__)
+#if defined(__clang__) && __cplusplus >= 201103L
+#define fallthrough	[[gnu::fallthrough]]
+#elif __has_cpp_attribute(fallthrough) || \
+	__STDC_VERSION__ - 0 > 201710L || \
+	__cplusplus >= 201703L
+#define fallthrough	[[fallthrough]]
+#else
+#define fallthrough	do {} while(0); /* fallthrough */
+#endif /* __GNUC__ */
+#elif (defined(_MSVC_LANG) && _MSVC_LANG >= 201703L)
+#define fallthrough	[[fallthrough]]
+#else
+#ifndef fallthrough
+#define fallthrough	do {} while(0)
+#endif
+#endif
+
+/*
    SLJIT defines the following architecture dependent types and macros:
 
    Types:

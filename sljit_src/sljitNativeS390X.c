@@ -186,10 +186,10 @@ static sljit_s32 encode_inst(void **ptr, sljit_ins ins)
 	switch (size) {
 	case 6:
 		*ibuf++ = (sljit_u16)(ins >> 32);
-		/* fallthrough */
+		fallthrough;
 	case 4:
 		*ibuf++ = (sljit_u16)(ins >> 16);
-		/* fallthrough */
+		fallthrough;
 	case 2:
 		*ibuf++ = (sljit_u16)(ins);
 	}
@@ -218,7 +218,7 @@ static SLJIT_INLINE sljit_u8 get_cc(struct sljit_compiler *compiler, sljit_s32 t
 				return (cc0 | cc3);
 			return (cc0 | cc2);
 		}
-		/* fallthrough */
+		fallthrough;
 
 	case SLJIT_EQUAL_F64:
 		return cc0;
@@ -232,7 +232,7 @@ static SLJIT_INLINE sljit_u8 get_cc(struct sljit_compiler *compiler, sljit_s32 t
 				return (cc1 | cc2);
 			return (cc1 | cc3);
 		}
-		/* fallthrough */
+		fallthrough;
 
 	case SLJIT_NOT_EQUAL_F64:
 		return (cc1 | cc2 | cc3);
@@ -260,7 +260,7 @@ static SLJIT_INLINE sljit_u8 get_cc(struct sljit_compiler *compiler, sljit_s32 t
 	case SLJIT_NOT_CARRY:
 		if (compiler->status_flags_state & SLJIT_CURRENT_FLAGS_SUB)
 			return (cc2 | cc3);
-		/* fallthrough */
+		fallthrough;
 
 	case SLJIT_SIG_LESS_EQUAL:
 	case SLJIT_LESS_EQUAL_F64:
@@ -269,7 +269,7 @@ static SLJIT_INLINE sljit_u8 get_cc(struct sljit_compiler *compiler, sljit_s32 t
 	case SLJIT_CARRY:
 		if (compiler->status_flags_state & SLJIT_CURRENT_FLAGS_SUB)
 			return (cc0 | cc1);
-		/* fallthrough */
+		fallthrough;
 
 	case SLJIT_SIG_GREATER:
 		/* Overflow is considered greater, see SLJIT_SUB. */
@@ -281,7 +281,7 @@ static SLJIT_INLINE sljit_u8 get_cc(struct sljit_compiler *compiler, sljit_s32 t
 	case SLJIT_OVERFLOW:
 		if (compiler->status_flags_state & SLJIT_SET_Z)
 			return (cc2 | cc3);
-		/* fallthrough */
+		fallthrough;
 
 	case SLJIT_UNORDERED_F64:
 		return cc3;
@@ -289,7 +289,7 @@ static SLJIT_INLINE sljit_u8 get_cc(struct sljit_compiler *compiler, sljit_s32 t
 	case SLJIT_NOT_OVERFLOW:
 		if (compiler->status_flags_state & SLJIT_SET_Z)
 			return (cc0 | cc1);
-		/* fallthrough */
+		fallthrough;
 
 	case SLJIT_ORDERED_F64:
 		return (cc0 | cc1 | cc2);
@@ -3213,7 +3213,7 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_op_flags(struct sljit_compiler *co
 		break;
 	case SLJIT_MOV32:
 		op |= SLJIT_32;
-		/* fallthrough */
+		fallthrough;
 	case SLJIT_MOV:
 		/* can write straight into destination */
 		loc_r = dst_r;

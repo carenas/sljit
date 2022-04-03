@@ -782,7 +782,7 @@ static sljit_s32 emit_op_imm(struct sljit_compiler *compiler, sljit_s32 flags, s
 		SLJIT_ASSERT(!(flags & SET_FLAGS) && arg1 == TMP_REG1);
 		if (dst == arg2)
 			return SLJIT_SUCCESS;
-		/* fallthrough */
+		fallthrough;
 	case SLJIT_MOV_U32:
 		SLJIT_ASSERT(!(flags & SET_FLAGS) && arg1 == TMP_REG1);
 		return push_inst(compiler, (ORR ^ W_OP) | RD(dst) | RN(TMP_ZERO) | RM(arg2));
@@ -1708,7 +1708,7 @@ static sljit_ins get_cc(struct sljit_compiler *compiler, sljit_s32 type)
 	case SLJIT_CARRY:
 		if (compiler->status_flags_state & SLJIT_CURRENT_FLAGS_ADD)
 			return 0x3;
-		/* fallthrough */
+		fallthrough;
 
 	case SLJIT_LESS:
 	case SLJIT_LESS_F64:
@@ -1717,7 +1717,7 @@ static sljit_ins get_cc(struct sljit_compiler *compiler, sljit_s32 type)
 	case SLJIT_NOT_CARRY:
 		if (compiler->status_flags_state & SLJIT_CURRENT_FLAGS_ADD)
 			return 0x2;
-		/* fallthrough */
+		fallthrough;
 
 	case SLJIT_GREATER_EQUAL:
 	case SLJIT_GREATER_EQUAL_F64:
@@ -1746,7 +1746,7 @@ static sljit_ins get_cc(struct sljit_compiler *compiler, sljit_s32 type)
 	case SLJIT_OVERFLOW:
 		if (!(compiler->status_flags_state & (SLJIT_CURRENT_FLAGS_ADD | SLJIT_CURRENT_FLAGS_SUB)))
 			return 0x0;
-		/* fallthrough */
+		fallthrough;
 
 	case SLJIT_UNORDERED_F64:
 		return 0x7;
@@ -1754,7 +1754,7 @@ static sljit_ins get_cc(struct sljit_compiler *compiler, sljit_s32 type)
 	case SLJIT_NOT_OVERFLOW:
 		if (!(compiler->status_flags_state & (SLJIT_CURRENT_FLAGS_ADD | SLJIT_CURRENT_FLAGS_SUB)))
 			return 0x1;
-		/* fallthrough */
+		fallthrough;
 
 	case SLJIT_ORDERED_F64:
 		return 0x6;
@@ -2013,19 +2013,19 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_mem(struct sljit_compiler *compile
 		break;
 	case SLJIT_MOV_S8:
 		sign = 1;
-		/* fallthrough */
+		fallthrough;
 	case SLJIT_MOV_U8:
 		inst = STURBI | (MEM_SIZE_SHIFT(BYTE_SIZE) << 30) | 0x400;
 		break;
 	case SLJIT_MOV_S16:
 		sign = 1;
-		/* fallthrough */
+		fallthrough;
 	case SLJIT_MOV_U16:
 		inst = STURBI | (MEM_SIZE_SHIFT(HALF_SIZE) << 30) | 0x400;
 		break;
 	case SLJIT_MOV_S32:
 		sign = 1;
-		/* fallthrough */
+		fallthrough;
 	case SLJIT_MOV_U32:
 	case SLJIT_MOV32:
 		inst = STURBI | (MEM_SIZE_SHIFT(INT_SIZE) << 30) | 0x400;
