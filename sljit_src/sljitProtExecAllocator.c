@@ -82,6 +82,10 @@ struct chunk_header {
        as it only uses local variables
 */
 
+#ifndef sljit_wx_unlocked
+#define sljit_wx_unlocked(a) (1)
+#endif
+
 #ifndef __NetBSD__
 #include <sys/stat.h>
 #include <fcntl.h>

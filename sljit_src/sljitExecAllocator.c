@@ -81,6 +81,10 @@
 #ifdef _WIN32
 #define SLJIT_UPDATE_WX_FLAGS(from, to, enable_exec)
 
+#ifndef sljit_wx_unlocked
+#define sljit_wx_unlocked(a)	(1)
+#endif
+
 static SLJIT_INLINE void* alloc_chunk(sljit_uw size)
 {
 	return VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
@@ -93,6 +97,12 @@ static SLJIT_INLINE void free_chunk(void *chunk, sljit_uw size)
 }
 
 #else /* POSIX */
+
+/*
+ * Return 1 if WX pages can be created or 0 otherwise
+ * a non-zero parameter should be passed and the response will be cached
+ */
+SLJIT_API_FUNC_ATTRIBUTE int sljit_wx_unlocked(int);
 
 #if defined(__APPLE__) && defined(MAP_JIT)
 /*
@@ -112,8 +122,6 @@ static SLJIT_INLINE void free_chunk(void *chunk, sljit_uw size)
 
 static SLJIT_INLINE int get_map_jit_flag()
 {
-	size_t page_size;
-	void *ptr;
 	struct utsname name;
 	static int map_jit_flag = -1;
 
@@ -123,14 +131,8 @@ static SLJIT_INLINE int get_map_jit_flag()
 
 		/* Kernel version for 10.14.0 (Mojave) or later */
 		if (atoi(name.release) >= 18) {
-			page_size = get_page_alignment() + 1;
-			/* Only use MAP_JIT if a hardened runtime is used */
-			ptr = mmap(NULL, page_size, PROT_WRITE | PROT_EXEC,
-					MAP_PRIVATE | MAP_ANON, -1, 0);
-
-			if (ptr != MAP_FAILED)
-				munmap(ptr, page_size);
-			else
+			/* Only use MAP_JIT if hardened runtime is used */
+			if (!sljit_wx_unlocked(0))
 				map_jit_flag = MAP_JIT;
 		}
 	}
@@ -167,6 +169,66 @@ static SLJIT_INLINE void apple_update_wx_flags(sljit_s32 enable_exec)
 #ifndef SLJIT_MAP_JIT
 #define SLJIT_MAP_JIT	(0)
 #endif /* !SLJIT_MAP_JIT */
+
+SLJIT_API_FUNC_ATTRIBUTE int sljit_wx_unlocked(int active)
+{
+#ifndef MAP_ANON
+	SLJIT_UNUSED(active);
+	return 1;
+#else
+	static int unlocked = -1;
+	int ret = unlocked;
+
+	if (unlocked < 0) {
+		void *ptr;
+		int prot = PROT_WRITE | PROT_EXEC;
+		int flags = MAP_PRIVATE | MAP_ANON;
+		size_t page_size = get_page_alignment() + 1;
+
+		if (active)
+			flags |= SLJIT_MAP_JIT;
+
+		/*
+		 * Multiple threads might arrive here, but this code
+		 * assumes that all will get the same response from this
+		 * call, and that the ability to create WX pages is
+		 * at least a unique property per process.
+		 *
+		 * Special setup that switch permission per thread like
+		 * the one provided by apple in arm64 are expected to
+		 * return a valid address below and will be handled with
+		 * SLJIT_UPDATE_WX_FLAGS() as needed later.
+		 */
+		ptr = mmap(NULL, page_size, prot, flags, -1, 0);
+		ret = (ptr != MAP_FAILED);
+		if (ret) {
+			if (active) {
+#ifdef __FreeBSD__
+				/*
+				 * HardenedBSD implementation of PAX returns
+				 * quietly a map with the executable bit
+				 * stripped, and which will segfault if used.
+				 *
+				 * Check for that case below by applying the
+				 * same permissions that were supposedly
+				 * granted above and discard the bogus mmap
+				 * response if it fails.
+				 */
+				ret = !(mprotect(ptr, page_size, prot) < 0);
+#endif
+				unlocked = ret;
+			}
+			munmap(ptr, page_size);
+		} else {
+			if (active)
+				unlocked = 0;
+		}
+	}
+
+	SLJIT_ASSERT(ret >= 0);
+	return ret;
+#endif /* MAP_ANON */
+}
 
 static SLJIT_INLINE void* alloc_chunk(sljit_uw size)
 {

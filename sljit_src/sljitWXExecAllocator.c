@@ -51,6 +51,12 @@
    not possible.
 */
 
+/* TODO:
+ * this is technically not correct because W^X in NetBSD could still fail if
+ * PROT_MPROTECT wasn't available at build time
+ */
+#define sljit_wx_unlocked(a) (1)
+
 #define SLJIT_UPDATE_WX_FLAGS(from, to, enable_exec) \
 	sljit_update_wx_flags((from), (to), (enable_exec))
 
