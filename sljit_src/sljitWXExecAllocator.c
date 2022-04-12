@@ -58,6 +58,14 @@
 #include <sys/types.h>
 #include <sys/mman.h>
 
+static SLJIT_INLINE int generic_se_protected(void *ptr, sljit_uw size)
+{
+	if (SLJIT_LIKELY(!mprotect(ptr, size, PROT_EXEC)))
+		return mprotect(ptr, size, PROT_READ | PROT_WRITE);
+
+	return -1;
+}
+
 #ifdef __NetBSD__
 #if defined(PROT_MPROTECT)
 #define check_se_protected(ptr, size) (0)
@@ -70,6 +78,10 @@ typedef unsigned int	u_int;
 #define devmajor_t sljit_s32
 #endif /* _NETBSD_SOURCE */
 #include <sys/sysctl.h>
+
+#ifndef PROC_PID_PAXFLAGS
+#define check_se_protected(ptr, size) generic_se_protected(ptr, size)
+#else /* NetBSD >= 8 */
 #include <unistd.h>
 
 #define check_se_protected(ptr, size) netbsd_se_protected()
@@ -89,17 +101,10 @@ static SLJIT_INLINE int netbsd_se_protected(void)
 
 	return (paxflags & CTL_PROC_PAXFLAGS_MPROTECT) ? -1 : 0;
 }
+#endif /* PROC_PID_PAXFLAGS */
 #endif /* PROT_MPROTECT */
 #else /* POSIX */
 #define check_se_protected(ptr, size) generic_se_protected(ptr, size)
-
-static SLJIT_INLINE int generic_se_protected(void *ptr, sljit_uw size)
-{
-	if (SLJIT_LIKELY(!mprotect(ptr, size, PROT_EXEC)))
-		return mprotect(ptr, size, PROT_READ | PROT_WRITE);
-
-	return -1;
-}
 #endif /* NetBSD */
 
 #if defined SLJIT_SINGLE_THREADED && SLJIT_SINGLE_THREADED
