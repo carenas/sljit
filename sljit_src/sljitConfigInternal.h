@@ -380,6 +380,11 @@ extern "C" {
 	sparc_cache_flush((from), (to))
 #define SLJIT_CACHE_FLUSH_OWN_IMPL 1
 
+#elif defined _WIN32
+
+#define SLJIT_CACHE_FLUSH(from, to) \
+	FlushInstructionCache(GetCurrentProcess(), (void*)(from), (char*)(to) - (char*)(from))
+
 #elif (defined(__GNUC__) && (__GNUC__ >= 5 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 3))) || defined(__clang__)
 
 #define SLJIT_CACHE_FLUSH(from, to) \
@@ -391,11 +396,6 @@ extern "C" {
 #include <sys/cachectl.h>
 #define SLJIT_CACHE_FLUSH(from, to) \
 	cacheflush((long)(from), (long)(to), 0)
-
-#elif defined _WIN32
-
-#define SLJIT_CACHE_FLUSH(from, to) \
-	FlushInstructionCache(GetCurrentProcess(), (void*)(from), (char*)(to) - (char*)(from))
 
 #else
 
