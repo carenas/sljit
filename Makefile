@@ -16,7 +16,7 @@ EXTRA_LDFLAGS=
 endif
 
 CPPFLAGS = $(EXTRA_CPPFLAGS) -Isljit_src
-CFLAGS += -O2 -Wall -Wextra -Wconversion -Wsign-compare -Werror
+CFLAGS += -O0 -g -Wall -Wextra -Wconversion -Wsign-compare
 REGEX_CFLAGS += $(CFLAGS) -fshort-wchar
 LDFLAGS = $(EXTRA_LDFLAGS)
 
@@ -64,7 +64,7 @@ $(BINDIR)/regexJIT.o : $(REGEXDIR)/regexJIT.c $(BINDIR)/.keep $(SLJIT_HEADERS) $
 	$(CC) $(CPPFLAGS) $(REGEX_CFLAGS) -c -o $@ $(REGEXDIR)/regexJIT.c
 
 $(BINDIR)/sljit_test: $(BINDIR)/.keep $(BINDIR)/sljitMain.o $(TESTDIR)/sljitTest.c $(SRCDIR)/sljitLir.c $(SLJIT_LIR_FILES) $(SLJIT_HEADERS) $(TESTDIR)/sljitConfigPre.h $(TESTDIR)/sljitConfigPost.h
-	$(CC) $(CPPFLAGS) -DSLJIT_HAVE_CONFIG_PRE=1 -I$(TESTDIR) $(CFLAGS) $(LDFLAGS) $(BINDIR)/sljitMain.o $(TESTDIR)/sljitTest.c $(SRCDIR)/sljitLir.c -o $@ -lm -lpthread
+	$(CC) $(CPPFLAGS) -DSLJIT_HAVE_CONFIG_PRE=1 -I$(TESTDIR) $(CFLAGS) $(LDFLAGS) $(BINDIR)/sljitMain.o $(TESTDIR)/sljitTest.c $(SRCDIR)/sljitLir.c -o $@ -lm -pthread
 
 $(BINDIR)/regex_test: $(BINDIR)/.keep $(BINDIR)/regexMain.o $(BINDIR)/regexJIT.o $(BINDIR)/sljitLir.o
 	$(CC) $(CFLAGS) $(LDFLAGS) $(BINDIR)/regexMain.o $(BINDIR)/regexJIT.o $(BINDIR)/sljitLir.o -o $@ -lm -lpthread

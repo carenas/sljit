@@ -132,7 +132,7 @@ extern "C" {
 
 #if (defined SLJIT_CONFIG_AUTO && SLJIT_CONFIG_AUTO)
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__CYGWIN__)
 
 #if defined(__i386__) || defined(__i386)
 #define SLJIT_CONFIG_X86_32 1
@@ -167,9 +167,7 @@ extern "C" {
 
 #else /* _WIN32 */
 
-#if defined(_M_X64) || defined(__x86_64__)
-#define SLJIT_CONFIG_X86_64 1
-#elif (defined(_M_ARM) && _M_ARM >= 7 && defined(_M_ARMT)) || defined(__thumb2__)
+#if (defined(_M_ARM) && _M_ARM >= 7 && defined(_M_ARMT)) || defined(__thumb2__)
 #define SLJIT_CONFIG_ARM_THUMB2 1
 #elif (defined(_M_ARM) && _M_ARM >= 7)
 #define SLJIT_CONFIG_ARM_V7 1
@@ -177,6 +175,8 @@ extern "C" {
 #define SLJIT_CONFIG_ARM_V5 1
 #elif defined(_M_ARM64) || defined(__aarch64__)
 #define SLJIT_CONFIG_ARM_64 1
+#elif defined(_M_X64) || defined(_WIN64)
+#define SLJIT_CONFIG_X86_64 1
 #else
 #define SLJIT_CONFIG_X86_32 1
 #endif
@@ -593,7 +593,7 @@ typedef double sljit_f64;
 #define SLJIT_FUNC
 #endif /* gcc >= 3.4 */
 
-#elif defined(_MSC_VER)
+#elif defined(_WIN32)
 
 #define SLJIT_FUNC __fastcall
 #define SLJIT_X86_32_FASTCALL 1
