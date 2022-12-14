@@ -328,6 +328,37 @@ extern "C" {
 /* Instruction cache flush. */
 /****************************/
 
+#if (defined SLJIT_CONFIG_X86 && SLJIT_CONFIG_X86) \
+	|| (defined SLJIT_CONFIG_S390X && SLJIT_CONFIG_S390X)
+
+/* Not required to implement on archs with unified caches. */
+#define SLJIT_CACHE_FLUSH(from, to)
+
+#elif defined(__APPLE__)
+
+/* Supported by all macs since Mac OS 10.5.
+   However, it does not work on non-jailbroken iOS devices,
+   although the compilation is successful. */
+#include <libkern/OSCacheControl.h>
+#define SLJIT_CACHE_FLUSH(from, to) \
+	sys_icache_invalidate((void*)(from), (size_t)((char*)(to) - (char*)(from)))
+
+#elif defined(_WIN32)
+
+#define SLJIT_CACHE_FLUSH(from, to) \
+	FlushInstructionCache(GetCurrentProcess(), (void*)(from), (char*)(to) - (char*)(from))
+
+#elif (defined SLJIT_CONFIG_PPC && SLJIT_CONFIG_PPC)
+
+/* The __clear_cache() implementation of GCC is a dummy function on PowerPC.
+   Older versions of the implementations of clang for 32-bit just call abort() */
+
+#define SLJIT_CACHE_FLUSH(from, to) \
+	ppc_cache_flush((from), (to))
+#define SLJIT_CACHE_FLUSH_OWN_IMPL 1
+
+#endif
+
 /*
  * TODO:
  *
@@ -345,70 +376,81 @@ extern "C" {
  * instead.
  */
 #if (!defined SLJIT_CACHE_FLUSH && defined __has_builtin)
-#if __has_builtin(__builtin___clear_cache) && !defined(__clang__)
+#if __has_builtin(__builtin___clear_cache)
 
 /*
  * https://gcc.gnu.org/bugzilla//show_bug.cgi?id=91248
  * https://gcc.gnu.org/bugzilla//show_bug.cgi?id=93811
  * gcc's clear_cache builtin for power is broken
  */
-#if !defined(SLJIT_CONFIG_PPC)
 #define SLJIT_CACHE_FLUSH(from, to) \
-	__builtin___clear_cache((char*)(from), (char*)(to))
-#endif
+	__builtin___clear_cache((char*)(from), (char*)(to) + 1)
 
-#endif /* gcc >= 10 */
-#endif /* (!defined SLJIT_CACHE_FLUSH && defined __has_builtin) */
+#endif /* gcc >= 10 or modern clang */
+#endif /* __has_builtin */
 
 #ifndef SLJIT_CACHE_FLUSH
 
-#if (defined SLJIT_CONFIG_X86 && SLJIT_CONFIG_X86) \
-	|| (defined SLJIT_CONFIG_S390X && SLJIT_CONFIG_S390X)
+#if (defined(__GNUC__) && \
+	(__GNUC__ >= 5 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 3))) \
+	|| defined(__clang__)
 
-/* Not required to implement on archs with unified caches. */
-#define SLJIT_CACHE_FLUSH(from, to)
+#define SLJIT_CACHE_FLUSH(from, to) \
+	__builtin___clear_cache((char*)(from), (char*)(to) + 1)
 
-#elif defined __APPLE__
+#elif (defined(SLJIT_CONFIG_RISCV) && SLJIT_CONFIG_RISCV) && defined(__linux__)
 
-/* Supported by all macs since Mac OS 10.5.
-   However, it does not work on non-jailbroken iOS devices,
-   although the compilation is successful. */
+#include <features.h>
+#ifndef __UCLIBC__
+#include <sys/cachectl.h>
+#endif
+
+#define SLJIT_CACHE_FLUSH(from, to) \
+	__riscv_flush_icache((void*)(from), (void*)(to), 0UL)
+
+#elif (defined(SLJIT_CONFIG_MIPS) && SLJIT_CONFIG_MIPS) && defined(__linux__)
+
+#include <sys/cachectl.h>
+#define SLJIT_CACHE_FLUSH(from, to) \
+	cacheflush((void*)(from), (int)((char*)(to) - (char*)(from) + 1), BCACHE)
+
+#elif (defined(SLJIT_CONFIG_MIPS) && SLJIT_CONFIG_MIPS) && defined(__OpenBSD__)
+
+#include <machine/sysarch.h>
+#define SLJIT_CACHE_FLUSH(from, to) \
+	cacheflush((void*)(from), (int)((char*)(to) - (char*)(from)), ICACHE)
+
+#elif defined(__NetBSD__)
+
 #include <libkern/OSCacheControl.h>
 #define SLJIT_CACHE_FLUSH(from, to) \
 	sys_icache_invalidate((void*)(from), (size_t)((char*)(to) - (char*)(from)))
 
-#elif (defined SLJIT_CONFIG_PPC && SLJIT_CONFIG_PPC)
-
-/* The __clear_cache() implementation of GCC is a dummy function on PowerPC. */
-#define SLJIT_CACHE_FLUSH(from, to) \
-	ppc_cache_flush((from), (to))
-#define SLJIT_CACHE_FLUSH_OWN_IMPL 1
-
-#elif defined(_WIN32)
-
-#define SLJIT_CACHE_FLUSH(from, to) \
-	FlushInstructionCache(GetCurrentProcess(), (void*)(from), (char*)(to) - (char*)(from))
-
-#elif (defined(__GNUC__) && (__GNUC__ >= 5 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 3))) || defined(__clang__)
-
-#define SLJIT_CACHE_FLUSH(from, to) \
-	__builtin___clear_cache((char*)(from), (char*)(to))
-
-#elif defined __ANDROID__
+#elif defined(__ANDROID__)
 
 /* Android ARMv7 with gcc lacks __clear_cache; use cacheflush instead. */
-#include <sys/cachectl.h>
+#include <unistd.h>
 #define SLJIT_CACHE_FLUSH(from, to) \
 	cacheflush((long)(from), (long)(to), 0)
 
+#elif defined(__GNUC__)
+
+/* Call the compiler runtime directly if available. */
+#define SLJIT_CACHE_FLUSH(from, to) \
+	__clear_cache((char*)(from), (char*)(to) + 1)
+
+#elif (defined(SLJIT_CONFIG_ARM_64) && SLJIT_CONFIG_ARM_64) && defined(__linux__)
+
+/* provided by clearcache.s */
+void clear_cache(void *, void *);
+#define SLJIT_CACHE_FLUSH(from, to) \
+	clear_cache((void*)(from), (void *)(char *)((to) + 1))
+
 #else
 
-/* Call __ARM_NR_cacheflush on ARM-Linux or the corresponding MIPS syscall. */
-#define SLJIT_CACHE_FLUSH(from, to) \
-	__clear_cache((char*)(from), (char*)(to))
+#error "No known way to flush the instruction cache"
 
 #endif
-
 #endif /* !SLJIT_CACHE_FLUSH */
 
 /******************************************************/
