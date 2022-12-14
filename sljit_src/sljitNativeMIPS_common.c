@@ -490,13 +490,6 @@ exit:
 #endif
 }
 
-#ifdef __GNUC__
-static __attribute__ ((noinline)) void sljit_cache_flush(void* code, void* code_ptr)
-{
-	SLJIT_CACHE_FLUSH(code, code_ptr);
-}
-#endif
-
 #if (defined SLJIT_CONFIG_MIPS_64 && SLJIT_CONFIG_MIPS_64)
 
 static SLJIT_INLINE sljit_sw put_label_get_length(struct sljit_put_label *put_label, sljit_uw max_label)
@@ -703,12 +696,8 @@ SLJIT_API_FUNC_ATTRIBUTE void* sljit_generate_code(struct sljit_compiler *compil
 	code = (sljit_ins *)SLJIT_ADD_EXEC_OFFSET(code, executable_offset);
 	code_ptr = (sljit_ins *)SLJIT_ADD_EXEC_OFFSET(code_ptr, executable_offset);
 
-#ifndef __GNUC__
 	SLJIT_CACHE_FLUSH(code, code_ptr);
-#else
-	/* GCC workaround for invalid code generation with -O2. */
-	sljit_cache_flush(code, code_ptr);
-#endif
+
 	SLJIT_UPDATE_WX_FLAGS(code, code_ptr, 1);
 	return code;
 }
