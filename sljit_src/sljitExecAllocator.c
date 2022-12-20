@@ -170,14 +170,32 @@ static SLJIT_INLINE void apple_update_wx_flags(sljit_s32 enable_exec)
 
 #ifdef __FreeBSD__
 #include <sys/procctl.h>
-#include <limits.h>
+
+#ifdef PROC_WXMAP_CTL
+static SLJIT_INLINE int sljit_is_wx_block(void)
+{
+	static int wx_block = -1;
+	if (wx_block < 0) {
+		int sljit_wx_enable = PROC_WX_MAPPINGS_PERMIT;
+		wx_block = !!procctl(P_PID, 0, PROC_WXMAP_CTL, &sljit_wx_enable));
+	}
+	return wx_block;
+}
+
+#define SLJIT_IS_WX_BLOCK sljit_is_wx_block()
+#endif /* PROC_WXMAP_CTL */
+
+#endif /* FreeBSD */
+
+#ifndef SLJIT_IS_WX_BLOCK
+#define SLJIT_IS_WX_BLOCK (1)
 #endif
 
 static SLJIT_INLINE void *sljit_map_wx(size_t size, int flags, int fd)
 {
 	void *ptr;
 	int prot;
-       
+
 	prot = PROT_READ | PROT_WRITE | PROT_EXEC;
 #ifdef PROT_MAX
 	prot |= PROT_MAX(prot);
@@ -186,20 +204,12 @@ static SLJIT_INLINE void *sljit_map_wx(size_t size, int flags, int fd)
 	ptr = mmap(NULL, size, prot, flags, fd, 0);
 	if (ptr != MAP_FAILED)
 		return ptr;
-#ifdef PROC_WXMAP_CTL
-	static int r = INT_MIN;
-	if (r == INT_MIN) {
-		int sljit_wx_enable = PROC_WX_MAPPINGS_PERMIT;
-		r = procctl(P_PID, 0, PROC_WXMAP_CTL, &sljit_wx_enable);
-	}
-	if (r == 0) {
-		return mmap(NULL, size, prot, flags, fd, 0);
-	}
 
-#endif
-	return NULL;
+	if (!SLJIT_IS_WX_BLOCK)
+		ptr = mmap(NULL, size, prot, flags, fd, 0);
+
+	return ptr;
 }
-
 
 static SLJIT_INLINE void* alloc_chunk(sljit_uw size)
 {
@@ -216,7 +226,8 @@ static SLJIT_INLINE void* alloc_chunk(sljit_uw size)
 	fd = dev_zero;
 #endif /* MAP_ANON */
 
-	if (!(retval = sljit_map_wx(size, flags, fd)))
+	retval = sljit_map_wx(size, flags, fd);
+	if (retval == MAP_FAILED)
 		return NULL;
 
 #ifdef __FreeBSD__
