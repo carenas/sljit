@@ -146,8 +146,8 @@ static sljit_s32 call_with_args(struct sljit_compiler *compiler, sljit_s32 arg_t
 				 * and its starting offset must be 8 because of alignment. */
 				SLJIT_ASSERT((*offsets_ptr >> 2) == 2);
 
-				prev_ins = MFC1 | TA(6) | FS(float_arg_count) | (1 << 11);
-				ins = MFC1 | TA(7) | FS(float_arg_count);
+				prev_ins = MFC1 | TA(6) | MEMF64_FS_FIRST(float_arg_count);
+				ins = MFC1 | TA(7) | MEMF64_FS_SECOND(float_arg_count);
 			} else if (*offsets_ptr < 254)
 				ins = SDC1 | S(SLJIT_SP) | FT(float_arg_count) | IMM(*offsets_ptr);
 			else if (*offsets_ptr == 254)

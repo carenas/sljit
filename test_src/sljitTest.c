@@ -65,6 +65,7 @@ union executable_code {
 	void (SLJIT_FUNC *test70_f8)(sljit_f64 a, sljit_f64 b, sljit_uw c, sljit_sw d);
 	void (SLJIT_FUNC *test70_f9)(sljit_f64 a, sljit_f64 b, sljit_uw c, sljit_f64 d);
 	void (SLJIT_FUNC *test70_f10)(sljit_f64 a, sljit_f64 b, sljit_f64 c, sljit_s32 d);
+	void (SLJIT_FUNC *test70_f11)(sljit_f32 a, sljit_f32 b, sljit_f64 c);
 
 	sljit_sw (SLJIT_FUNC *test71_f1)(sljit_f32 a, sljit_f64 b);
 	sljit_sw (SLJIT_FUNC *test71_f2)(sljit_f64 a, sljit_f64 b, sljit_f64 c, sljit_f64 d);
@@ -7458,6 +7459,25 @@ static void test70(void)
 		FAILED(dbuf[0] != 4810.5, "test70 case 38 failed\n");
 		FAILED(dbuf[1] != -9148.75, "test70 case 39 failed\n");
 		FAILED(dbuf[2] != 8601.25, "test70 case 40 failed\n");
+
+		dbuf[0] = 0;
+
+		compiler = sljit_create_compiler(NULL, NULL);
+		FAILED(!compiler, "cannot create compiler\n");
+
+		sljit_emit_enter(compiler, 0, SLJIT_ARGS3(VOID, F32, F32, F64), 1, 0, 3, 0, 0);
+		sljit_emit_op1(compiler, SLJIT_MOV, SLJIT_R0, 0, SLJIT_IMM, (sljit_sw)&dbuf);
+		sljit_emit_fop1(compiler, SLJIT_MOV_F64, SLJIT_MEM1(SLJIT_R0), 0, SLJIT_FR2, 0);
+
+		sljit_emit_return_void(compiler);
+
+		code.code = sljit_generate_code(compiler);
+		CHECK(compiler);
+		sljit_free_compiler(compiler);
+
+		code.test70_f11(0.0f, 0.0f, 3.141592);
+
+		FAILED(dbuf[0] != 3.141592, "test70 case 41 failed\n");
 	}
 
 	successful_tests++;
