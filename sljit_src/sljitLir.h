@@ -1621,9 +1621,16 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_mem_update(struct sljit_compiler *
 
    Flags: - (does not modify flags) */
 
+#if (defined SLJIT_MIPS_REV && SLJIT_MIPS_REV >= 6)
+SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_fmem_unaligned(struct sljit_compiler *compiler, sljit_s32 type,
+        sljit_s32 freg,
+        sljit_s32 mem, sljit_sw memw);
+#define sljit_emit_fmem(c, t, f, m, w) sljit_emit_fmem_unaligned(c, t, f, m, w)
+#else
 SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_fmem(struct sljit_compiler *compiler, sljit_s32 type,
 	sljit_s32 freg,
 	sljit_s32 mem, sljit_sw memw);
+#endif /* SLJIT_MIPS_REV >= 6 */
 
 /* Same as sljit_emit_mem_update except the followings:
 

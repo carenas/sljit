@@ -283,11 +283,12 @@ static const sljit_u8 freg_map[SLJIT_NUMBER_OF_FLOAT_REGISTERS + 4] = {
 #define XORI		(HI(14))
 
 #if (defined SLJIT_MIPS_REV && SLJIT_MIPS_REV >= 1)
-#define CLZ		(HI(28) | LO(32))
 #if (defined SLJIT_MIPS_REV && SLJIT_MIPS_REV >= 6)
-#define DCLZ		(LO(18))
+#define CLZ		(LO(64 + 16))
+#define DCLZ		(LO(64 + 16 + 2))
 #else /* SLJIT_MIPS_REV < 6 */
-#define DCLZ		(HI(28) | LO(36))
+#define CLZ		(HI(16 + 8 + 4) | LO(32))
+#define DCLZ		(HI(16 + 8 + 4) | LO(32 + 4))
 #define MOVF		(HI(0) | (0 << 16) | LO(1))
 #define MOVN		(HI(0) | LO(11))
 #define MOVT		(HI(0) | (1 << 16) | LO(1))
@@ -706,7 +707,7 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_has_cpu_feature(sljit_s32 feature_type)
 {
 #if defined(__GNUC__) && !defined(SLJIT_IS_FPU_AVAILABLE)
 	sljit_sw fir = 0;
-#endif /* __GNUC__ && !SLJIT_IS_FPU_AVAILABLE */
+#endif
 
 	switch (feature_type) {
 	case SLJIT_HAS_FPU:
@@ -720,10 +721,16 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_has_cpu_feature(sljit_s32 feature_type)
 #endif
 	case SLJIT_HAS_ZERO_REGISTER:
 		return 1;
+
+	case SLJIT_HAS_PREFETCH:
+#if (defined SLJIT_MIPS_REV && SLJIT_MIPS_REV < 6)
+		return 1;
+#else /* !SLJIT_MIPS_REV || SLJIT_MIPS_REV >= 6 */
+		return 0;
+#endif
 #if (defined SLJIT_MIPS_REV && SLJIT_MIPS_REV >= 1)
 	case SLJIT_HAS_CLZ:
 	case SLJIT_HAS_CMOV:
-	case SLJIT_HAS_PREFETCH:
 		return 1;
 
 	case SLJIT_HAS_CTZ:
@@ -1424,9 +1431,9 @@ static sljit_s32 emit_clz_ctz(struct sljit_compiler *compiler, sljit_s32 op, slj
 	sljit_s32 is_clz = (GET_OPCODE(op) == SLJIT_CLZ);
 #if (defined SLJIT_CONFIG_MIPS_64 && SLJIT_CONFIG_MIPS_64)
 	sljit_ins max = (op & SLJIT_32) ? 32 : 64;
-#else /* !SLJIT_CONFIG_RISCV_64 */
+#else /* !SLJIT_CONFIG_MIPS_64 */
 	sljit_ins max = 32;
-#endif /* SLJIT_CONFIG_RISCV_64 */
+#endif /* SLJIT_CONFIG_MIPS_64 */
 
 	/* The TMP_REG2 is the next value. */
 	if (src != TMP_REG2)
@@ -1850,8 +1857,8 @@ static SLJIT_INLINE sljit_s32 emit_single_op(struct sljit_compiler *compiler, sl
 		}
 
 #if (defined SLJIT_MIPS_REV && SLJIT_MIPS_REV >= 6)
-		FAIL_IF(push_inst(compiler, SELECT_OP(DMUL, MUL) | S(src1) | T(src2) | D(dst), DR(dst)));
 		FAIL_IF(push_inst(compiler, SELECT_OP(DMUH, MUH) | S(src1) | T(src2) | DA(EQUAL_FLAG), EQUAL_FLAG));
+		FAIL_IF(push_inst(compiler, SELECT_OP(DMUL, MUL) | S(src1) | T(src2) | D(dst), DR(dst)));
 #else /* SLJIT_MIPS_REV < 6 */
 		FAIL_IF(push_inst(compiler, SELECT_OP(DMULT, MULT) | S(src1) | T(src2), MOVABLE_INS));
 		FAIL_IF(push_inst(compiler, MFHI | DA(EQUAL_FLAG), EQUAL_FLAG));
@@ -2237,7 +2244,7 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_op0(struct sljit_compiler *compile
 	return SLJIT_SUCCESS;
 }
 
-#if (defined SLJIT_MIPS_REV && SLJIT_MIPS_REV >= 1)
+#if (defined SLJIT_MIPS_REV && (SLJIT_MIPS_REV >= 1 && SLJIT_MIPS_REV < 6))
 static sljit_s32 emit_prefetch(struct sljit_compiler *compiler,
         sljit_s32 src, sljit_sw srcw)
 {
@@ -2258,7 +2265,7 @@ static sljit_s32 emit_prefetch(struct sljit_compiler *compiler,
 
 	return push_inst(compiler, PREFX | S(src & REG_MASK) | T(OFFS_REG(src)), MOVABLE_INS);
 }
-#endif /* SLJIT_MIPS_REV >= 1 */
+#endif /* 1 <= SLJIT_MIPS_REV < 6 */
 
 SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_op1(struct sljit_compiler *compiler, sljit_s32 op,
 	sljit_s32 dst, sljit_sw dstw,
@@ -2518,11 +2525,11 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_op_src(struct sljit_compiler *comp
 	case SLJIT_PREFETCH_L2:
 	case SLJIT_PREFETCH_L3:
 	case SLJIT_PREFETCH_ONCE:
-#if (defined SLJIT_MIPS_REV && SLJIT_MIPS_REV >= 1)
+#if (defined SLJIT_MIPS_REV && SLJIT_MIPS_REV < 6)
 		return emit_prefetch(compiler, src, srcw);
 #else /* SLJIT_MIPS_REV < 1 */
 		return SLJIT_SUCCESS;
-#endif /* SLJIT_MIPS_REV >= 1 */
+#endif /* SLJIT_MIPS_REV < 6 */
 	}
 
 	return SLJIT_SUCCESS;
@@ -3441,12 +3448,12 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_mem(struct sljit_compiler *compile
 	sljit_s32 reg,
 	sljit_s32 mem, sljit_sw memw)
 {
-	sljit_s32 op = type & 0xff;
-	sljit_s32 flags = 0;
 	sljit_ins ins;
 #if !(defined SLJIT_MIPS_REV && SLJIT_MIPS_REV >= 6)
+	sljit_s32 op = type & 0xff;
+	sljit_s32 flags = 0;
 	sljit_ins ins_right;
-#endif /* !(SLJIT_MIPS_REV >= 6) */
+#endif /* SLJIT_MIPS_REV < 6 */
 
 	CHECK_ERROR();
 	CHECK(check_sljit_emit_mem(compiler, type, reg, mem, memw));
