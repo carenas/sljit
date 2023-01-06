@@ -24,6 +24,8 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <limits.h>
+
 #ifdef __SOFTFP__
 #define ARM_ABI_INFO " ABI:softfp"
 #else
@@ -406,7 +408,7 @@ static sljit_s32 push_inst(struct sljit_compiler *compiler, sljit_uw inst)
 	return SLJIT_SUCCESS;
 }
 
-static SLJIT_INLINE sljit_s32 emit_imm(struct sljit_compiler *compiler, sljit_s32 reg, sljit_sw imm)
+static SLJIT_INLINE sljit_s32 emit_imm(struct sljit_compiler *compiler, sljit_s32 reg, sljit_uw imm)
 {
 	FAIL_IF(push_inst(compiler, MOVW | RD(reg) | ((imm << 4) & 0xf0000) | ((sljit_u32)imm & 0xfff)));
 	return push_inst(compiler, MOVT | RD(reg) | ((imm >> 12) & 0xf0000) | (((sljit_u32)imm >> 16) & 0xfff));
@@ -1843,26 +1845,19 @@ static sljit_s32 emit_op_mem(struct sljit_compiler *compiler, sljit_s32 flags, s
 
 	arg &= REG_MASK;
 
-	if (argw > mask) {
+	if (argw > mask || argw < -mask) {
 		tmp = (sljit_uw)(argw & (sign | mask));
-		tmp = (sljit_uw)((argw + (tmp <= (sljit_uw)sign ? 0 : sign)) & ~mask);
+		tmp = ((sljit_uw)argw + (tmp <= (sljit_uw)sign ? 0 : (sljit_uw)sign)) & (sljit_uw)~mask;
 		imm = get_imm(tmp);
 
 		if (imm) {
-			FAIL_IF(push_inst(compiler, ADD | RD(tmp_reg) | RN(arg) | imm));
-			argw -= (sljit_sw)tmp;
-			arg = tmp_reg;
-
-			SLJIT_ASSERT(argw >= -mask && argw <= mask);
-		}
-	} else if (argw < -mask) {
-		tmp = (sljit_uw)(-argw & (sign | mask));
-		tmp = (sljit_uw)((-argw + (tmp <= (sljit_uw)sign ? 0 : sign)) & ~mask);
-		imm = get_imm(tmp);
-
-		if (imm) {
-			FAIL_IF(push_inst(compiler, SUB | RD(tmp_reg) | RN(arg) | imm));
-			argw += (sljit_sw)tmp;
+			if (argw <= INT_MAX - mask) {
+				FAIL_IF(push_inst(compiler, ADD | RD(tmp_reg) | RN(arg) | imm));
+				argw -= (sljit_sw)tmp;
+			} else {
+				FAIL_IF(push_inst(compiler, SUB | RD(tmp_reg) | RN(arg) | imm));
+				argw += (sljit_sw)tmp;
+			}
 			arg = tmp_reg;
 
 			SLJIT_ASSERT(argw >= -mask && argw <= mask);
@@ -3674,7 +3669,7 @@ SLJIT_API_FUNC_ATTRIBUTE struct sljit_const* sljit_emit_const(struct sljit_compi
 		EMIT_DATA_TRANSFER(WORD_SIZE | LOAD_DATA, 1, dst_r, TMP_PC, 0), (sljit_uw)init_value));
 	compiler->patches++;
 #else
-	PTR_FAIL_IF(emit_imm(compiler, dst_r, init_value));
+	PTR_FAIL_IF(emit_imm(compiler, dst_r, (sljit_uw)init_value));
 #endif
 
 	const_ = (struct sljit_const*)ensure_abuf(compiler, sizeof(struct sljit_const));
