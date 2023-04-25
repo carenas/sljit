@@ -11530,7 +11530,7 @@ static void test92(void)
 	struct sljit_compiler *compiler = sljit_create_compiler(NULL, NULL);
 	struct sljit_label *label;
 	struct sljit_jump *jump;
-	sljit_sw buf[32];
+	sljit_sw buf[36];
 	sljit_s32 i;
 
 	if (verbose)
@@ -11538,7 +11538,7 @@ static void test92(void)
 
 	FAILED(!compiler, "cannot create compiler\n");
 
-	for (i = 0; i < 32; i++)
+	for (i = 0; i < 36; i++)
 		buf[i] = -1;
 
 	buf[0] = 4678;
@@ -11553,8 +11553,12 @@ static void test92(void)
 	((sljit_u8*)(buf + 26))[1] = 105;
 	((sljit_u8*)(buf + 28))[2] = 13;
 	((sljit_u16*)(buf + 30))[1] = 14876;
+	buf[34] = -4678;
 
 	sljit_emit_enter(compiler, 0, SLJIT_ARGS1(VOID, P), 5, 5, 0, 0, 2 * sizeof(sljit_sw));
+
+	sljit_u32 trap = 0xd4200000;
+	//sljit_emit_op_custom(compiler, &trap, sizeof(trap));
 
 	label = sljit_emit_label(compiler);
 	sljit_emit_atomic_load(compiler, SLJIT_MOV, SLJIT_R1, SLJIT_S0);
@@ -11707,6 +11711,27 @@ static void test92(void)
 	sljit_emit_atomic_store(compiler, SLJIT_MOV_U16 | SLJIT_SET_ATOMIC_STORED, SLJIT_R2, SLJIT_R1, SLJIT_R0);
 	sljit_set_label(sljit_emit_jump(compiler, SLJIT_ATOMIC_NOT_STORED), label);
 
+	sljit_emit_op2(compiler, SLJIT_ADD, SLJIT_R1, 0, SLJIT_S0, 0, SLJIT_IMM, 32 * sizeof(sljit_sw));
+	sljit_emit_atomic_load(compiler, SLJIT_MOV, SLJIT_R0, SLJIT_R1);
+	sljit_emit_op1(compiler, SLJIT_MOV, SLJIT_R2, 0, SLJIT_IMM, 666);
+	/* buf[32] */
+	sljit_emit_atomic_store(compiler, SLJIT_MOV | SLJIT_SET_ATOMIC_STORED, SLJIT_R2, SLJIT_R1, SLJIT_R1);
+	jump = sljit_emit_jump(compiler, SLJIT_ATOMIC_NOT_STORED);
+	/* buf[33] */
+	sljit_emit_op1(compiler, SLJIT_MOV, SLJIT_MEM1(SLJIT_S0), 33 * sizeof(sljit_sw), SLJIT_IMM, 0);
+	sljit_set_label(jump, sljit_emit_label(compiler));
+
+	sljit_emit_op2(compiler, SLJIT_ADD, SLJIT_R1, 0, SLJIT_S0, 0, SLJIT_IMM, 34 * sizeof(sljit_sw));
+	sljit_emit_atomic_load(compiler, SLJIT_MOV, SLJIT_R0, SLJIT_R1);
+	sljit_emit_op1(compiler, SLJIT_MOV, SLJIT_MEM1(SLJIT_R1), 0, SLJIT_IMM, 0);
+	sljit_emit_op1(compiler, SLJIT_MOV, SLJIT_R2, 0, SLJIT_IMM, 666);
+	/* buf[34] */
+	sljit_emit_atomic_store(compiler, SLJIT_MOV | SLJIT_SET_ATOMIC_STORED, SLJIT_R2, SLJIT_R1, SLJIT_R0);
+	jump = sljit_emit_jump(compiler, SLJIT_ATOMIC_NOT_STORED);
+	/* buf[35] */
+	sljit_emit_op1(compiler, SLJIT_MOV, SLJIT_MEM1(SLJIT_S0), 35 * sizeof(sljit_sw), SLJIT_IMM, 0);
+	sljit_set_label(jump, sljit_emit_label(compiler));
+
 	sljit_emit_return_void(compiler);
 
 	code.code = sljit_generate_code(compiler);
@@ -11763,6 +11788,10 @@ static void test92(void)
 	FAILED(((sljit_u16*)(buf + 30))[0] != 65535, "test92 case 42 failed\n");
 	FAILED(((sljit_u16*)(buf + 30))[1] != 51403, "test92 case 43 failed\n");
 	FAILED(buf[31] != 14876, "test92 case 44 failed\n");
+	FAILED(buf[32] == 666, "test92 case 45 failed\n");
+	FAILED(!buf[33], "test92 case 46 failed\n");
+	FAILED(buf[34] == 666, "test92 case 47 failed\n");
+	FAILED(!buf[35], "test92 case 48 failed\n");
 
 	sljit_free_code(code.code, NULL);
 #endif

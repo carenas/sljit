@@ -91,6 +91,7 @@ static const sljit_u8 freg_map[SLJIT_NUMBER_OF_FLOAT_REGISTERS + 3] = {
 #define CLZ 0xdac01000
 #define CSEL 0x9a800000
 #define CSINC 0x9a800400
+#define CLREX 0xf57ff01f
 #define EOR 0xca000000
 #define EORI 0xd2000000
 #define EXTR 0x93c00000
@@ -2493,7 +2494,7 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_atomic_load(struct sljit_compiler 
 	sljit_s32 dst_reg,
 	sljit_s32 mem_reg)
 {
-	sljit_ins ins = 0;
+	sljit_ins ins;
 
 	CHECK_ERROR();
 	CHECK(check_sljit_emit_atomic_load(compiler, op, dst_reg, mem_reg));
@@ -2526,7 +2527,7 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_atomic_store(struct sljit_compiler
 	sljit_s32 mem_reg,
 	sljit_s32 temp_reg)
 {
-	sljit_ins ins;
+	sljit_ins ins, load_ins, jump_ins = (CBZ ^ (1 << 24));
 	sljit_s32 mem_flags;
 
 	CHECK_ERROR();
@@ -2537,24 +2538,31 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_atomic_store(struct sljit_compiler
 	case SLJIT_MOV32:
 	case SLJIT_MOV_U32:
 		ins = CASL ^ (1 << 30);
+		load_ins = LDXR ^ (1 << 30);
 		mem_flags = INT_SIZE;
 		break;
 	case SLJIT_MOV_U8:
 		ins = CASLB;
+		load_ins = LDXRB;
 		mem_flags = BYTE_SIZE;
 		break;
 	case SLJIT_MOV_U16:
 		ins = CASLH;
+		load_ins = LDXRH;
 		mem_flags = HALF_SIZE;
 		break;
 	default:
 		ins = CASL;
+		load_ins = LDXR;
 		mem_flags = WORD_SIZE;
 		break;
 	}
+	FAIL_IF(push_inst(compiler, load_ins | RN(mem_reg) | RT(TMP_REG1)));
+	FAIL_IF(push_inst(compiler, SUBI | (1 << 20) | RN(temp_reg) | RD(TMP_REG1)));
+	FAIL_IF(push_inst(compiler, jump_ins | (8 << 3) | RT(TMP_REG1)));
 	FAIL_IF(push_inst(compiler, ins | RM(temp_reg) | RN(mem_reg) | RD(src_reg)));
-	FAIL_IF(emit_op_mem(compiler, mem_flags, temp_reg, SLJIT_MEM1(mem_reg), 0, TMP_REG1));
-	return push_inst(compiler, SUBI | (1 << 20) | RN(src_reg) | RD(temp_reg));
+	FAIL_IF(push_inst(compiler, CLREX));
+	return push_inst(compiler, SUBI | (1 << 20) | RN(TMP_REG1) | RD(temp_reg));
 #else
 	switch (GET_OPCODE(op)) {
 	case SLJIT_MOV32:
