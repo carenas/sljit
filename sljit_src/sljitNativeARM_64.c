@@ -80,6 +80,12 @@ static const sljit_u8 freg_map[SLJIT_NUMBER_OF_FLOAT_REGISTERS + 3] = {
 #define BLR 0xd63f0000
 #define BR 0xd61f0000
 #define BRK 0xd4200000
+#define CASA 0xc8e07c00
+#define CASB 0x08a07c00
+#define CASH 0x48a07c00
+#define CASL 0xc8a0fc00
+#define CASLB 0x08a07c00
+#define CASLH 0x48a0fc00
 #define CBZ 0xb4000000
 #define CCMPI 0xfa400800
 #define CLZ 0xdac01000
@@ -2492,6 +2498,9 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_atomic_load(struct sljit_compiler 
 	CHECK_ERROR();
 	CHECK(check_sljit_emit_atomic_load(compiler, op, dst_reg, mem_reg));
 
+#ifdef __ARM_FEATURE_ATOMICS
+	return sljit_emit_op1(compiler, op, dst_reg, 0, SLJIT_MEM1(mem_reg), 0);
+#else
 	switch (GET_OPCODE(op)) {
 	case SLJIT_MOV32:
 	case SLJIT_MOV_U32:
@@ -2509,6 +2518,7 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_atomic_load(struct sljit_compiler 
 	}
 
 	return push_inst(compiler, ins | RN(mem_reg) | RT(dst_reg));
+#endif /* ARM_FEATURE_ATOMICS */
 }
 
 SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_atomic_store(struct sljit_compiler *compiler, sljit_s32 op,
@@ -2517,10 +2527,35 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_atomic_store(struct sljit_compiler
 	sljit_s32 temp_reg)
 {
 	sljit_ins ins;
+	sljit_s32 mem_flags;
 
 	CHECK_ERROR();
 	CHECK(check_sljit_emit_atomic_store(compiler, op, src_reg, mem_reg, temp_reg));
 
+#if __ARM_FEATURE_ATOMICS
+	switch (GET_OPCODE(op)) {
+	case SLJIT_MOV32:
+	case SLJIT_MOV_U32:
+		ins = CASL ^ (1 << 30);
+		mem_flags = INT_SIZE;
+		break;
+	case SLJIT_MOV_U8:
+		ins = CASLB;
+		mem_flags = BYTE_SIZE;
+		break;
+	case SLJIT_MOV_U16:
+		ins = CASLH;
+		mem_flags = HALF_SIZE;
+		break;
+	default:
+		ins = CASL;
+		mem_flags = WORD_SIZE;
+		break;
+	}
+	FAIL_IF(push_inst(compiler, ins | RM(temp_reg) | RN(mem_reg) | RD(src_reg)));
+	FAIL_IF(emit_op_mem(compiler, mem_flags, temp_reg, SLJIT_MEM1(mem_reg), 0, TMP_REG1));
+	return push_inst(compiler, SUBI | (1 << 20) | RN(src_reg) | RD(temp_reg));
+#else
 	switch (GET_OPCODE(op)) {
 	case SLJIT_MOV32:
 	case SLJIT_MOV_U32:
@@ -2539,6 +2574,7 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_atomic_store(struct sljit_compiler
 
 	FAIL_IF(push_inst(compiler, ins | RM(TMP_REG1) | RN(mem_reg) | RT(src_reg)));
 	return push_inst(compiler, (SUBI ^ W_OP) | (1 << 29) | RD(TMP_ZERO) | RN(TMP_REG1));
+#endif /* Armv8.1 LSE */
 }
 
 SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_get_local_base(struct sljit_compiler *compiler, sljit_s32 dst, sljit_sw dstw, sljit_sw offset)
