@@ -11537,7 +11537,8 @@ static void test92(void)
 {
 #if (defined SLJIT_CONFIG_X86 && SLJIT_CONFIG_X86) \
 		|| (defined SLJIT_CONFIG_ARM && SLJIT_CONFIG_ARM) \
-		|| (defined SLJIT_CONFIG_S390X && SLJIT_CONFIG_S390X)
+		|| (defined SLJIT_CONFIG_S390X && SLJIT_CONFIG_S390X) \
+		|| (defined SLJIT_CONFIG_LOONGARCH && SLJIT_CONFIG_LOONGARCH)
 	/* Test atomic load and store. */
 	executable_code code;
 	struct sljit_compiler *compiler = sljit_create_compiler(NULL, NULL);
@@ -11834,7 +11835,7 @@ static void test92(void)
 #if (defined SLJIT_64BIT_ARCHITECTURE && SLJIT_64BIT_ARCHITECTURE)
 	FAILED(((sljit_u32*)(buf + 33))[0] != 0x55555555, "test92 case 46 failed\n");
 	FAILED(((sljit_u32*)(buf + 33))[1] != 0xdeadbeef, "test92 case 47 failed\n");
-	FAILED(buf[34] != 0xffffffff, "test92 case 48 failed\n");
+	FAILED(buf[34] != -1, "test92 case 48 failed\n");
 #endif /* SLJIT_64BIT_ARCHITECTURE */
 	FAILED(buf[35] != 1, "test92 case 49 failed\n");
 	FAILED(buf[36] != 0x11, "test92 case 50 (load) failed\n");
