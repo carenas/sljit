@@ -11544,7 +11544,7 @@ static void test92(void)
 	struct sljit_compiler *compiler = sljit_create_compiler(NULL, NULL);
 	struct sljit_label *label;
 	struct sljit_jump *jump;
-	sljit_sw buf[38];
+	sljit_sw buf[40];
 	sljit_s32 i;
 
 	if (verbose)
@@ -11570,6 +11570,7 @@ static void test92(void)
 	((sljit_s32*)(buf + 33))[1] = -1;
 #endif /* SLJIT_64BIT_ARCHITECTURE */
 	buf[37] = WCONST(0x1122334444332211, 0x11222211);
+	buf[38] = SLJIT_FUNC_ADDR(test92);
 
 	sljit_emit_enter(compiler, 0, SLJIT_ARGS1(VOID, P), 5, 5, 0, 0, 2 * sizeof(sljit_sw));
 
@@ -11674,6 +11675,19 @@ static void test92(void)
 	sljit_emit_op1(compiler, SLJIT_MOV32, SLJIT_MEM1(SLJIT_S0), 18 * sizeof(sljit_sw), SLJIT_S1, 0);
 	/* buf[19] */
 	sljit_emit_op1(compiler, SLJIT_MOV, SLJIT_MEM1(SLJIT_S0), 19 * sizeof(sljit_sw), SLJIT_R0, 0);
+
+	/* case: SLJIT_MOV_P */
+	sljit_emit_op2(compiler, SLJIT_ADD, SLJIT_R2, 0, SLJIT_S0, 0, SLJIT_IMM, 38 * sizeof(sljit_sw));
+	label = sljit_emit_label(compiler);
+	sljit_emit_atomic_load(compiler, SLJIT_MOV_P, SLJIT_R0, SLJIT_R2);
+	sljit_emit_op1(compiler, SLJIT_MOV_P, SLJIT_S1, 0, SLJIT_R0, 0);
+	sljit_emit_op1(compiler, SLJIT_MOV_P, SLJIT_R1, 0, SLJIT_R0, 0);
+	sljit_emit_op1(compiler, SLJIT_MOV_P, SLJIT_R0, 0, SLJIT_R2, 0);
+	/* buf[38] */
+	sljit_emit_atomic_store(compiler, SLJIT_MOV_P | SLJIT_SET_ATOMIC_STORED, SLJIT_R0, SLJIT_R2, SLJIT_R1);
+	sljit_set_label(sljit_emit_jump(compiler, SLJIT_ATOMIC_NOT_STORED), label);
+	/* buf[39] */
+	sljit_emit_op1(compiler, SLJIT_MOV_P, SLJIT_MEM1(SLJIT_S0), 39 * sizeof(sljit_sw), SLJIT_S1, 0);
 
 	sljit_emit_op2(compiler, SLJIT_ADD, SLJIT_R1, 0, SLJIT_S0, 0, SLJIT_IMM, 20 * sizeof(sljit_sw));
 	label = sljit_emit_label(compiler);
@@ -11840,6 +11854,8 @@ static void test92(void)
 	FAILED(buf[35] != 1, "test92 case 49 failed\n");
 	FAILED(buf[36] != 0x11, "test92 case 50 (load) failed\n");
 	FAILED(((sljit_u8*)(buf + 37))[1] != buf[36], "test92 case 50 (store) failed\n");
+	FAILED(buf[38] != (sljit_sw)&buf[38], "test92 case 51 (store) failed \n");
+	FAILED(buf[39] != SLJIT_FUNC_ADDR(test92), "test92 case 51 (load) failed \n");
 
 	sljit_free_code(code.code, NULL);
 #endif
