@@ -11544,7 +11544,7 @@ static void test92(void)
 	struct sljit_compiler *compiler = sljit_create_compiler(NULL, NULL);
 	struct sljit_label *label;
 	struct sljit_jump *jump;
-	sljit_sw buf[38];
+	sljit_sw buf[40];
 	sljit_s32 i;
 
 	if (verbose)
@@ -11570,6 +11570,7 @@ static void test92(void)
 	((sljit_s32*)(buf + 33))[1] = -1;
 #endif /* SLJIT_64BIT_ARCHITECTURE */
 	buf[37] = WCONST(0x1122334444332211, 0x11222211);
+	buf[39] = -1;
 
 	sljit_emit_enter(compiler, 0, SLJIT_ARGS1(VOID, P), 5, 5, 0, 0, 2 * sizeof(sljit_sw));
 
@@ -11743,7 +11744,11 @@ static void test92(void)
 	/* buf[32] */
 	sljit_emit_op1(compiler, SLJIT_MOV, SLJIT_MEM1(SLJIT_S0), 32 * sizeof(sljit_sw), SLJIT_S1, 0);
 
+	/* buf[35] */
+	sljit_emit_op_flags(compiler, SLJIT_MOV, SLJIT_MEM1(SLJIT_S0), 35 * sizeof(sljit_sw), SLJIT_ATOMIC_STORED);
+
 #if (defined SLJIT_64BIT_ARCHITECTURE && SLJIT_64BIT_ARCHITECTURE)
+        /* case: 32bit does not spill over in 64bit architecture */
 	sljit_emit_op2(compiler, SLJIT_ADD, SLJIT_R1, 0, SLJIT_S0, 0, SLJIT_IMM, 33 * sizeof(sljit_sw) + sizeof(sljit_u32));
 	sljit_emit_op1(compiler, SLJIT_MOV, SLJIT_S1, 0, SLJIT_IMM, 0);
 	label = sljit_emit_label(compiler);
@@ -11755,10 +11760,10 @@ static void test92(void)
 	sljit_set_label(sljit_emit_jump(compiler, SLJIT_ATOMIC_NOT_STORED), label);
 	/* buf[34] */
 	sljit_emit_op1(compiler, SLJIT_MOV32, SLJIT_MEM1(SLJIT_S0), 34 * sizeof(sljit_sw), SLJIT_S1, 0);
+	/* buf[39] */
+	sljit_emit_op2(compiler, SLJIT_LSHR, SLJIT_S1, 0, SLJIT_S1, 0, SLJIT_IMM, 32);
+	sljit_emit_op1(compiler, SLJIT_MOV, SLJIT_MEM1(SLJIT_S0), 39 * sizeof(sljit_sw), SLJIT_S1, 0);
 #endif /* SLJIT_64BIT_ARCHITECTURE */
-
-	/* buf[35] */
-	sljit_emit_op_flags(compiler, SLJIT_MOV, SLJIT_MEM1(SLJIT_S0), 35 * sizeof(sljit_sw), SLJIT_ATOMIC_STORED);
 
 	/* case50: abandoned atomic load is safe */
 	sljit_emit_op1(compiler, SLJIT_MOV, SLJIT_R0, 0, SLJIT_IMM, 0);
@@ -11837,6 +11842,7 @@ static void test92(void)
 	FAILED(((sljit_u32*)(buf + 33))[1] != 0xdeadbeef, "test92 case 47 failed\n");
 	FAILED(((sljit_u32*)(buf + 34))[0] != 0xffffffff, "test92 case 48 failed\n");
 	FAILED(((sljit_u32*)(buf + 34))[1] != 0x55555555, "test92 case 48 (padding) failed\n");
+	FAILED(buf[39], "test92 case 48 (overflow) failed\n");
 #endif /* SLJIT_64BIT_ARCHITECTURE */
 	FAILED(buf[35] != 1, "test92 case 49 failed\n");
 	FAILED(buf[36] != 0x11, "test92 case 50 (load) failed\n");

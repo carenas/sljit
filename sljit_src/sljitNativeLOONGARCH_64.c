@@ -2943,7 +2943,8 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_atomic_load(struct sljit_compiler 
 {
 	sljit_ins ins;
 	sljit_s32 unalig_reg = TMP_REG3;
-	sljit_sw mem_unalig = 0;
+	sljit_s32 dst = dst_reg;
+	sljit_s32 mem_unalig = 0;
 
 	CHECK_ERROR();
 	CHECK(check_sljit_emit_atomic_load(compiler, op, dst_reg, mem_reg));
@@ -2956,6 +2957,7 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_atomic_load(struct sljit_compiler 
 		break;
 	case SLJIT_MOV32:
 	case SLJIT_MOV_U32:
+		dst = TMP_REG3;
 		ins = LL_W;
 		break;
 	case SLJIT_MOV:
@@ -2972,7 +2974,13 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_atomic_load(struct sljit_compiler 
 		mem_reg = TMP_REG2;
 	}
 
-	FAIL_IF(push_inst(compiler, ins | RD(dst_reg) | RJ(mem_reg) | IMM_I14(0)));
+	FAIL_IF(push_inst(compiler, ins | RD(dst) | RJ(mem_reg) | IMM_I14(0)));
+
+	if(dst != dst_reg) {
+		FAIL_IF(push_inst(compiler, BGE | RD(TMP_ZERO) | RJ(dst) | IMM_I12(1 + 2)));
+		FAIL_IF(push_inst(compiler, ORI | RD(TMP_REG1) | RK(TMP_ZERO) | IMM_I12(1)));
+		FAIL_IF(push_inst(compiler, MULW_D_WU | RD(dst_reg) | RJ(dst) | RK(TMP_REG1)));
+	}
 
 	if(GET_OPCODE(op) == SLJIT_MOV_U8) {
 		FAIL_IF(push_inst(compiler, SLLI_W | RD(TMP_REG1) | RJ(unalig_reg) | IMM_I12(0x3)));
