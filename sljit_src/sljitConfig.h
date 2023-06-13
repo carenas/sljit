@@ -126,6 +126,12 @@ extern "C" {
 #define SLJIT_VERBOSE 1
 #endif
 
+#ifndef SLJIT_ATOMIC_EMULATION
+#if (defined SLJIT_CONFIG_S390X && SLJIT_CONFIG_S390X)
+#define SLJIT_ATOMIC_EMULATION 1
+#endif
+#endif
+
 /*
   SLJIT_IS_FPU_AVAILABLE
     The availability of the FPU can be controlled by SLJIT_IS_FPU_AVAILABLE.

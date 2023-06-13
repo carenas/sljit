@@ -3926,6 +3926,7 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_atomic_store(struct sljit_compiler
 	sljit_s32 temp_reg)
 {
 	sljit_ins mask;
+	sljit_gpr src_r = gpr(src_reg);
 	sljit_gpr tmp_r = gpr(temp_reg);
 	sljit_gpr mem_r = gpr(mem_reg);
 
@@ -3933,17 +3934,27 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_atomic_store(struct sljit_compiler
 	CHECK(check_sljit_emit_atomic_store(compiler, op, src_reg, mem_reg, temp_reg));
 
 	switch (GET_OPCODE(op)) {
-	case SLJIT_MOV32:
-	case SLJIT_MOV_U32:
-		return push_inst(compiler, 0xba000000 /* cs */ | R20A(tmp_r) | R16A(gpr(src_reg)) | R12A(mem_r));
 	case SLJIT_MOV_U8:
 		mask = 0xff;
+#if SLJIT_ATOMIC_EMULATION
 		break;
+#endif
+		/* FALLTHRU */
 	case SLJIT_MOV_U16:
 		mask = 0xffff;
+#if SLJIT_ATOMIC_EMULATION
 		break;
+#else
+		src_r = gpr(tmp0);
+		FAIL_IF(push_inst(compiler, lr(src_r, gpr(src_reg))));
+		FAIL_IF(push_inst(compiler, 0xc00b00000000 /* nilf */ | R36A(src_r) | mask));
+#endif
+		/* FALLTHRU */
+	case SLJIT_MOV32:
+	case SLJIT_MOV_U32:
+		return push_inst(compiler, 0xba000000 /* cs */ | R20A(tmp_r) | R16A(src_r) | R12A(mem_r));
 	default:
-		return push_inst(compiler, 0xeb0000000030 /* csg */ | R36A(tmp_r) | R32A(gpr(src_reg)) | R28A(mem_r));
+		return push_inst(compiler, 0xeb0000000030 /* csg */ | R36A(tmp_r) | R32A(src_r) | R28A(mem_r));
 	}
 
 	/* tmp0 = (src_reg ^ tmp_r) & mask */
