@@ -3532,6 +3532,18 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_mem(struct sljit_compiler *compile
 
 	ADJUST_LOCAL_OFFSET(mem, memw);
 
+#if defined(SLJIT_CONFIG_ARM_V6) && SLJIT_CONFIG_ARM_V6
+	if (type & (SLJIT_MEM_ALIGNED | SLJIT_MEM_ALIGNED_16)) {
+		if (!(type & SLJIT_MEM_STORE) && REG_PAIR_FIRST(reg) == (mem & REG_MASK)) {
+			FAIL_IF(sljit_emit_mem_unaligned(compiler, type, REG_PAIR_SECOND(reg), SLJIT_MEM1(mem), memw + SSIZE_OF(sw)));
+			return sljit_emit_mem_unaligned(compiler, type, REG_PAIR_FIRST(reg), SLJIT_MEM1(mem), memw);
+		}
+
+		FAIL_IF(sljit_emit_mem_unaligned(compiler, type, REG_PAIR_FIRST(reg), SLJIT_MEM1(mem), memw));
+		return sljit_emit_mem_unaligned(compiler, type, REG_PAIR_SECOND(reg), SLJIT_MEM1(mem), memw + SSIZE_OF(sw));
+	}
+#endif /* SLJIT_CONFIG_ARM_V5 */
+
 	FAIL_IF(update_mem_addr(compiler, &mem, &memw, 0xfff - 4));
 
 	flags = WORD_SIZE;

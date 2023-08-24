@@ -3016,7 +3016,7 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_mem(struct sljit_compiler *compile
 	if (!(reg & REG_PAIR_MASK))
 		return sljit_emit_mem_unaligned(compiler, type, reg, mem, memw);
 
-	if (type & (SLJIT_MEM_UNALIGNED | SLJIT_MEM_ALIGNED_16 | SLJIT_MEM_ALIGNED_32)) {
+	if (type & (SLJIT_MEM_ALIGNED | SLJIT_MEM_ALIGNED_16 | SLJIT_MEM_ALIGNED_32)) {
 		if ((mem & REG_MASK) == 0) {
 			if ((memw & 0xfff) >= (0x1000 - SSIZE_OF(sw))) {
 				imm = get_imm((sljit_uw)((memw + 0x1000) & ~0xfff));
@@ -3173,6 +3173,18 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_mem(struct sljit_compiler *compile
 		mem = SLJIT_MEM1(TMP_REG1);
 	} else
 		memw >>= 2;
+
+#if defined(__ARM_ARCH) && __ARM_ARCH <= 6
+	if (type & (SLJIT_MEM_ALIGNED | SLJIT_MEM_ALIGNED_16)) {
+		if (!(type & SLJIT_MEM_STORE) && REG_PAIR_FIRST(reg) == (mem & REG_MASK)) {
+			FAIL_IF(sljit_emit_mem_unaligned(compiler, type, REG_PAIR_SECOND(reg), SLJIT_MEM1(mem), memw + SSIZE_OF(sw)));
+			return sljit_emit_mem_unaligned(compiler, type, REG_PAIR_FIRST(reg), SLJIT_MEM1(mem), memw);
+		}
+
+		FAIL_IF(sljit_emit_mem_unaligned(compiler, type, REG_PAIR_FIRST(reg), SLJIT_MEM1(mem), memw));
+		return sljit_emit_mem_unaligned(compiler, type, REG_PAIR_SECOND(reg), SLJIT_MEM1(mem), memw + SSIZE_OF(sw));
+	}
+#endif /* __ARM_ARCH <= 6 */
 
 	SLJIT_ASSERT(memw >= 0 && memw <= 0xff);
 	return push_inst32(compiler, ((type & SLJIT_MEM_STORE) ? STRD : LDRD) | (sljit_ins)flags | RN4(mem & REG_MASK) | RT4(REG_PAIR_FIRST(reg)) | RD4(REG_PAIR_SECOND(reg)) | (sljit_ins)memw);
