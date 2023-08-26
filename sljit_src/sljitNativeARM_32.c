@@ -104,6 +104,8 @@ static const sljit_u8 freg_map[SLJIT_NUMBER_OF_FLOAT_REGISTERS + 3] = {
 #define CMP		0xe1400000
 #define EOR		0xe0200000
 #define LDR		0xe5100000
+#define LDBB		0xe5500000
+#define LDRH		0xe15000b0
 #define LDR_POST	0xe4100000
 #define LDREX		0xe1900f9f
 #define LDREXB		0xe1d00f9f
@@ -122,6 +124,8 @@ static const sljit_u8 freg_map[SLJIT_NUMBER_OF_FLOAT_REGISTERS + 3] = {
 #define SBC		0xe0c00000
 #define SMULL		0xe0c00090
 #define STR		0xe5000000
+#define STRB		0xe5400000
+#define STRH		0xe1400000
 #define STREX		0xe1800f90
 #define STREXB		0xe1c00f90
 #define STREXH		0xe1e00f90
@@ -4289,23 +4293,35 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_atomic_load(struct sljit_compiler 
 	sljit_s32 mem_reg)
 {
 	sljit_u32 ins;
+	int legacy = (defined(SLJIT_CONFIG_ARM_V6) && SLJIT_CONFIG_ARM_V6) && (defined(__ARM_FEATURE_LDREX) && __ARM_FEATURE_LDREX == 4);
 
 	CHECK_ERROR();
 	CHECK(check_sljit_emit_atomic_load(compiler, op, dst_reg, mem_reg));
 
 	switch (GET_OPCODE(op)) {
 	case SLJIT_MOV_U8:
-		ins = LDREXB;
+		if (legacy) {
+			ins = LDRB;
+			FAIL_IF(push_inst(compiler, 0xee070fba));
+		} else
+			ins = LDREXB;
 		break;
 	case SLJIT_MOV_U16:
-		ins = LDREXH;
+		if (legacy) {
+			ins = LDRH;
+			FAIL_IF(push_inst(compiler, 0xee070fba));
+		} else
+			ins = LDREXH;
 		break;
 	default:
 		ins = LDREX;
 		break;
 	}
 
-	return push_inst(compiler, ins | RN(mem_reg) | RD(dst_reg));
+	if (!legacy)
+		return push_inst(compiler, ins | RN(mem_reg) | RD(dst_reg));
+
+	return push_inst(compiler, 0xee070fba);
 }
 
 SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_atomic_store(struct sljit_compiler *compiler, sljit_s32 op,
@@ -4314,6 +4330,8 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_atomic_store(struct sljit_compiler
 	sljit_s32 temp_reg)
 {
 	sljit_u32 ins;
+	int legacy = (defined(SLJIT_CONFIG_ARM_V6) && SLJIT_CONFIG_ARM_V6) && (defined(__ARM_FEATURE_LDREX) && __ARM_FEATURE_LDREX == 4);
+	sljit_ins cmp = 0;
 
 	/* temp_reg == mem_reg is undefined so use another temp register */
 	SLJIT_UNUSED_ARG(temp_reg);
@@ -4321,21 +4339,39 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_atomic_store(struct sljit_compiler
 	CHECK_ERROR();
 	CHECK(check_sljit_emit_atomic_store(compiler, op, src_reg, mem_reg, temp_reg));
 
-	switch (GET_OPCODE(op)) {
+	if (op & SLJIT_SET_ATOMIC_STORED)
+		cmp = legacy ? CMP : (CMPI_W | RN4(TMP_REG1))
+
+	op = GET_OPCODE(op);
+	switch (op) {
 	case SLJIT_MOV_U8:
-		ins = STREXB;
+		if (legacy) {
+			ins = STRB | RT(src_reg);
+			FAIL_IF(push_inst(compiler, 0xee070fba));
+		} else
+			ins = STREXB;
 		break;
 	case SLJIT_MOV_U16:
-		ins = STREXH;
+		if (legacy) {
+			ins = STRH | RT(src_reg);
+			FAIL_IF(push_inst(compiler, 0xee070fba));
+		} else
+			ins = STREXH;
 		break;
 	default:
-		ins = STREX;
+		ins = STREX | RD(TMP_REG1) | RM(src_reg;
+		if (cmp)
+			cmp = (CMPI_W | RN4(TMP_REG1));
 		break;
 	}
 
-	FAIL_IF(push_inst(compiler, ins | RN(mem_reg) | RD(TMP_REG1) | RM(src_reg)));
-	if (op & SLJIT_SET_ATOMIC_STORED)
-		return push_inst(compiler, CMP | SET_FLAGS | SRC2_IMM | RN(TMP_REG1));
+	FAIL_IF(push_inst(compiler, ins | RN(mem_reg)));
+
+	if (legacy && (op == SLJIT_MOV_U8 || op == SLJIT_MOV_U16))
+		FAIL_IF(push_inst(compiler, 0xee070fba));
+
+	if (cmp)
+		return push_inst(compiler, cmp);
 
 	return SLJIT_SUCCESS;
 }

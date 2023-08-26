@@ -129,6 +129,8 @@ static const sljit_u8 freg_map[SLJIT_NUMBER_OF_FLOAT_REGISTERS + 3] = {
 #define EOR_W		0xea800000
 #define IT		0xbf00
 #define LDR		0xf8d00000
+#define LDRB		0xf8900000
+#define LDRH		0xf8b00000
 #define LDR_SP		0x9800
 #define LDRD		0xe9500000
 #define LDREX		0xe8500f00
@@ -179,6 +181,8 @@ static const sljit_u8 freg_map[SLJIT_NUMBER_OF_FLOAT_REGISTERS + 3] = {
 #define SDIV		0xfb90f0f0
 #define SMULL		0xfb800000
 #define STR_SP		0x9000
+#define STRB		0xf8800000
+#define STRH		0xf8a00000
 #define STRD		0xe9400000
 #define STREX		0xe8400000
 #define STREXB		0xe8c00f40
@@ -3940,7 +3944,31 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_atomic_load(struct sljit_compiler 
 	CHECK_ERROR();
 	CHECK(check_sljit_emit_atomic_load(compiler, op, dst_reg, mem_reg));
 
-	switch (GET_OPCODE(op)) {
+	op = GET_OPCODE(op);
+#if defined(__ARM_ARCH) && __ARM_ARCH == 6
+	switch (op) {
+	case SLJIT_MOV_U8:
+		ins = LDRB;
+		FAIL_IF(push_inst32(compiler, 0xee070fba));
+		break;
+	case SLJIT_MOV_U16:
+		ins = LDRH;
+		FAIL_IF(push_inst32(compiler, 0xee070fba));
+		break;
+	default:
+		ins = LDREX;
+		break;
+	}
+
+	FAIL_IF(push_inst32(compiler, ins | RT4(dst_reg) | RN4(mem_reg)));
+
+	/* mcr 15, 0, r0, cr7, cr10, {5} */
+	if (op == SLJIT_MOV_U8 || op == SLJIT_MOV_U16)
+		return push_inst32(compiler, 0xee070fba);
+
+	return SLJIT_SUCCESS;
+#else
+	switch (op) {
 	case SLJIT_MOV_U8:
 		ins = LDREXB;
 		break;
@@ -3953,6 +3981,7 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_atomic_load(struct sljit_compiler 
 	}
 
 	return push_inst32(compiler, ins | RN4(mem_reg) | RT4(dst_reg));
+#endif /* ARMv6T2 */
 }
 
 SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_atomic_store(struct sljit_compiler *compiler, sljit_s32 op,
@@ -3961,6 +3990,11 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_atomic_store(struct sljit_compiler
 	sljit_s32 temp_reg)
 {
 	sljit_ins ins;
+#if defined(__ARM_ARCH) && __ARM_ARCH == 6
+	sljit_ins cmp = (op & SLJIT_SET_ATOMIC_STORED) ? CMP : 0;
+#else
+	sljit_ins cmp = (op & SLJIT_SET_ATOMIC_STORED) ? (CMPI_W | RN4(TMP_REG1)) : 0;
+#endif
 
 	/* temp_reg == mem_reg is undefined so use another temp register */
 	SLJIT_UNUSED_ARG(temp_reg);
@@ -3968,7 +4002,31 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_atomic_store(struct sljit_compiler
 	CHECK_ERROR();
 	CHECK(check_sljit_emit_atomic_store(compiler, op, src_reg, mem_reg, temp_reg));
 
-	switch (GET_OPCODE(op)) {
+	op = GET_OPCODE(op);
+#if defined(__ARM_ARCH) && __ARM_ARCH == 6
+	switch (op) {
+	case SLJIT_MOV_U8:
+		ins = STRB;
+		FAIL_IF(push_inst32(compiler, 0xee070fba));
+		break;
+	case SLJIT_MOV_U16:
+		ins = STRH;
+		FAIL_IF(push_inst32(compiler, 0xee070fba));
+		break;
+	default:
+		ins = STREX | RD4(TMP_REG1);
+		if (cmp)
+			cmp = CMPI_W | RN4(TMP_REG1);
+		break;
+	}
+
+	FAIL_IF(push_inst32(compiler, ins | RT4(src_reg) | RN4(mem_reg)));
+
+	/* mcr 15, 0, r0, cr7, cr10, {5} */
+	if (op == SLJIT_MOV_U8 || op == SLJIT_MOV_U16)
+		FAIL_IF(push_inst32(compiler, 0xee070fba));
+#else
+	switch (op) {
 	case SLJIT_MOV_U8:
 		ins = STREXB | RM4(TMP_REG1);
 		break;
@@ -3981,9 +4039,9 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_atomic_store(struct sljit_compiler
 	}
 
 	FAIL_IF(push_inst32(compiler, ins | RN4(mem_reg) | RT4(src_reg)));
-	if (op & SLJIT_SET_ATOMIC_STORED)
-		return push_inst32(compiler, CMPI_W | RN4(TMP_REG1));
-
+#endif /* ARMv6T2 */
+	if (cmp)
+		return push_inst32(compiler, cmp);
 	return SLJIT_SUCCESS;
 }
 
