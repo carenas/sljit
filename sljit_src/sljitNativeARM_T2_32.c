@@ -1147,7 +1147,7 @@ static SLJIT_INLINE sljit_s32 emit_op_mem(struct sljit_compiler *compiler, sljit
 
 	arg &= REG_MASK;
 
-	if (argw > 0xfff) {
+	if (argw > 0xfff || argw == -2147483648) {
 		imm = get_imm((sljit_uw)(argw & ~0xfff));
 		if (imm != INVALID_IMM) {
 			push_inst32(compiler, ADD_WI | RD4(tmp_reg) | RN4(arg) | imm);

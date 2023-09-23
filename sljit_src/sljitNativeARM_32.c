@@ -461,8 +461,8 @@ static sljit_s32 push_inst(struct sljit_compiler *compiler, sljit_ins inst)
 
 static SLJIT_INLINE sljit_s32 emit_imm(struct sljit_compiler *compiler, sljit_s32 reg, sljit_sw imm)
 {
-	FAIL_IF(push_inst(compiler, MOVW | RD(reg) | ((imm << 4) & 0xf0000) | ((sljit_u32)imm & 0xfff)));
-	return push_inst(compiler, MOVT | RD(reg) | ((imm >> 12) & 0xf0000) | (((sljit_u32)imm >> 16) & 0xfff));
+	FAIL_IF(push_inst(compiler, MOVW | RD(reg) | (((sljit_uw)imm << 4) & 0xf0000) | ((sljit_uw)imm & 0xfff)));
+	return push_inst(compiler, MOVT | RD(reg) | (((sljit_uw)imm >> 12) & 0xf0000) | (((sljit_uw)imm >> 16) & 0xfff));
 }
 
 #endif
@@ -1908,7 +1908,7 @@ static sljit_s32 emit_op_mem(struct sljit_compiler *compiler, sljit_s32 flags, s
 
 	arg &= REG_MASK;
 
-	if (argw > mask) {
+	if (argw > mask || argw == -2147483648) {
 		tmp = (sljit_uw)(argw & (sign | mask));
 		tmp = (sljit_uw)((argw + (tmp <= (sljit_uw)sign ? 0 : sign)) & ~mask);
 		imm = get_imm(tmp);

@@ -1226,7 +1226,7 @@ static sljit_s32 emit_op_mem(struct sljit_compiler *compiler, sljit_s32 inp_flag
 #if (defined SLJIT_CONFIG_PPC_64 && SLJIT_CONFIG_PPC_64)
 	if (argw <= 0x7fff7fffl && argw >= -0x80000000l) {
 #endif /* SLJIT_CONFIG_PPC_64 */
-		FAIL_IF(push_inst(compiler, ADDIS | D(tmp_reg) | A(arg) | IMM((argw + 0x8000) >> 16)));
+		FAIL_IF(push_inst(compiler, ADDIS | D(tmp_reg) | A(arg) | IMM(((sljit_uw)argw + 0x8000) >> 16)));
 		return push_inst(compiler, INST_CODE_AND_DST(inst, inp_flags, reg) | A(tmp_reg) | IMM(argw));
 #if (defined SLJIT_CONFIG_PPC_64 && SLJIT_CONFIG_PPC_64)
 	}
