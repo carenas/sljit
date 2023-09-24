@@ -1,0 +1,27 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - master
+      - integration
+    path-ignore:
+      - 'ci/*'
+      - 'doc/**'
+      - 'README'
+      - '*_CHANGES'
+
+  pull_request:
+    branches:
+      - master
+      - ci
+
+jobs:
+  main:
+    runs-on: ubuntu-latest
+    container: carenasgm/sljit:0.0.1
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+      - name: run
+        run: ci/run.pl
