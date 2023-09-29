@@ -638,7 +638,7 @@ static void test7(void)
 	/* buf[7] */
 	sljit_emit_op1(compiler, SLJIT_MOV, SLJIT_R0, 0, SLJIT_MEM1(SLJIT_S0), sizeof(sljit_sw) * 7);
 	sljit_emit_op2(compiler, SLJIT_XOR, SLJIT_MEM1(SLJIT_S0), sizeof(sljit_sw) * 7, SLJIT_IMM, (sljit_sw)0xff00ff00, SLJIT_R0, 0);
-	/* Return vaue */
+	/* Return value */
 	sljit_emit_op1(compiler, SLJIT_MOV, SLJIT_R0, 0, SLJIT_IMM, (sljit_sw)0xff00ff00);
 	sljit_emit_op2(compiler, SLJIT_OR, SLJIT_R1, 0, SLJIT_R0, 0, SLJIT_IMM, 0x0f);
 	sljit_emit_op2(compiler, SLJIT_AND, SLJIT_RETURN_REG, 0, SLJIT_IMM, 0x888888, SLJIT_R1, 0);
@@ -1076,7 +1076,7 @@ static void test11(void)
 		memset(value, 255, 16);
 	}
 
-	/* Return vaue */
+	/* Return value */
 	const4 = sljit_emit_const(compiler, SLJIT_RETURN_REG, 0, (sljit_sw)0xf7afcdb7);
 
 	sljit_emit_return(compiler, SLJIT_MOV, SLJIT_RETURN_REG, 0);
@@ -1101,7 +1101,7 @@ static void test11(void)
 	sljit_set_const(const2_addr, word_value2, executable_offset);
 	/* buf[2] */
 	sljit_set_const(const3_addr, (sljit_sw)0xbab0fea1, executable_offset);
-	/* Return vaue */
+	/* Return value */
 	sljit_set_const(const4_addr, -60089, executable_offset);
 
 	FAILED(code.func1((sljit_sw)&buf) != -60089, "test11 case 5 failed\n");
@@ -6541,7 +6541,7 @@ static void test60(void)
 	for (i = 0; i < sizeof(expected); i++) {
 		if (expected[i]) {
 			if (supported[i] != SLJIT_SUCCESS) {
-				printf("tast60 case %d should be supported\n", i + 1);
+				printf("test60 case %d should be supported\n", i + 1);
 				return;
 			}
 		} else {
@@ -6707,7 +6707,7 @@ static void test61(void)
 	for (i = 0; i < sizeof(expected); i++) {
 		if (expected[i]) {
 			if (supported[i] != SLJIT_SUCCESS) {
-				printf("tast61 case %d should be supported\n", i + 1);
+				printf("test61 case %d should be supported\n", i + 1);
 				return;
 			}
 		} else {
@@ -7977,7 +7977,7 @@ static void test72(void)
 
 static void test73(void)
 {
-	/* Test pasing arguments in registers. */
+	/* Test passing arguments in registers. */
 	executable_code code;
 	struct sljit_compiler* compiler;
 	sljit_sw wbuf[2];
