@@ -388,7 +388,7 @@ static sljit_u32 cpu_feature_list = 0;
 
 #ifdef _WIN32_WCE
 #include <cmnintrin.h>
-#elif defined(_MSC_VER) && _MSC_VER >= 1400
+#elif (defined(_MSC_VER) && _MSC_VER >= 1400) || defined(__MINGW32__)
 #include <intrin.h>
 #endif
 
@@ -424,7 +424,7 @@ static void execute_cpu_id(sljit_u32 info[4])
 #endif
 	linfo = (int *)info;
 
-#if defined(_MSC_VER) && _MSC_VER >= 1400
+#if (defined(_MSC_VER) && _MSC_VER >= 1400) || defined(__MINGW32__)
 
 	__cpuidex(linfo, linfo[0], linfo[2]);
 
