@@ -519,12 +519,18 @@ static void get_cpu_features(void)
 			feature_list |= CPU_FEATURE_CMOV;
 	}
 
-	info[0] = 0x80000001;
-	info[2] = 0; /* Silences a compiler warning. */
+	info[0] = 0x80000000;
 	execute_cpu_id(info);
+	max_id = info[0];
 
-	if (info[2] & 0x20)
-		feature_list |= CPU_FEATURE_LZCNT;
+	if (max_id >= 0x80000001)
+	{
+		info[0] = 0x80000001;
+		execute_cpu_id(info);
+
+		if (info[2] & 0x20)
+			feature_list |= CPU_FEATURE_LZCNT;
+	}
 
 	cpu_feature_list = feature_list;
 }
