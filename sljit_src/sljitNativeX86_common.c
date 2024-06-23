@@ -513,13 +513,12 @@ static sljit_u32 execute_get_xcr0_low(void)
 		".byte 0x0f\n"
 		".byte 0x01\n"
 		".byte 0xd0\n"
-		"movl %%eax, %0\n"
-		: "+m" (xcr0)
+		: "=a" (xcr0)
 		:
 #if defined(SLJIT_CONFIG_X86_32) && SLJIT_CONFIG_X86_32
-		: "eax", "ecx", "edx"
+		: "ecx", "edx"
 #else /* !SLJIT_CONFIG_X86_32 */
-		: "rax", "rcx", "rdx"
+		: "rcx", "rdx"
 #endif /* SLJIT_CONFIG_X86_32 */
 	);
 
