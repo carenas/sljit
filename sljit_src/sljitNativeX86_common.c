@@ -435,7 +435,10 @@ static void execute_cpu_id(sljit_u32 info[4])
 
 	__cpuidex((int*)info, (int)info[0], (int)info[2]);
 
-#elif defined(__GNUC__) || defined(__INTEL_COMPILER) || defined(__SUNPRO_C) || defined(__TINYC__)
+#elif (defined(__INTEL_LLVM_COMPILER) && __INTEL_LLVM_COMPILER < 20220100) \
+	|| (defined(__clang__) && __clang_major__ < 14) \
+	|| (defined(__GNUC__) && __GNUC__ < 3) \
+	|| defined(__SUNPRO_C) || defined(__SUNPRO_CC) || defined(__TINYC__)
 
 	/* AT&T syntax. */
 	__asm__ (
@@ -469,7 +472,7 @@ static void execute_cpu_id(sljit_u32 info[4])
 #endif /* SLJIT_CONFIG_X86_32 */
 	);
 
-#else /* _MSC_VER < 1400 */
+#elif defined(_MSC_VER)
 
 	/* Intel syntax. */
 	__asm {
@@ -477,9 +480,11 @@ static void execute_cpu_id(sljit_u32 info[4])
 		mov esi, info
 		mov eax, [esi]
 		mov ecx, [esi + 8]
+		push ebx
 		cpuid
 		mov [esi], eax
 		mov [esi + 4], ebx
+		pop ebx
 		mov [esi + 8], ecx
 		mov [esi + 12], edx
 #else /* !SLJIT_CONFIG_X86_32 */
@@ -494,7 +499,40 @@ static void execute_cpu_id(sljit_u32 info[4])
 #endif /* SLJIT_CONFIG_X86_32 */
 	}
 
-#endif /* _MSC_VER && _MSC_VER >= 1400 */
+#else /* __GNUC__ */
+
+	__asm__ (
+#if (defined SLJIT_CONFIG_X86_32 && SLJIT_CONFIG_X86_32)
+		"mov{l %0, %%esi| esi, %0}\n"
+		"mov{l (%%esi), %%eax| eax, [esi]}\n"
+		"mov{l 8(%%esi), %%ecx| ecx, [esi + 8]}\n"
+		"push{l %%ebx| ebx}\n"
+		"cpuid\n"
+		"mov{l %%eax, (%%esi)| [esi], eax}\n"
+		"mov{l %%ebx, 4(%%esi)| [esi + 4], ebx}\n"
+		"pop{l %%ebx| ebx}\n"
+		"mov{l %%ecx, 8(%%esi)| [esi + 8], ecx}\n"
+		"mov{l %%edx, 12(%%esi)| [esi + 12], edx\n"
+#else /* !SLJIT_CONFIG_X86_32 */
+		"mov{q %0, %%rsi| rsi, %0}\n"
+		"mov{l (%%rsi), %%eax| eax, [rsi]}\n"
+		"mov{l 8(%%rsi), %%ecx| ecx, [rsi + 8]}\n"
+		"cpuid\n"
+		"mov{l %%eax, (%%rsi)| [rsi], eax}\n"
+		"mov{l %%ebx, 4(%%rsi)| [rsi + 4], ebx}\n"
+		"mov{l %%ecx, 8(%%rsi)| [rsi + 8], ecx}\n"
+		"mov{l %%edx, 12(%%rsi)| [rsi + 12], edx}\n"
+#endif /* SLJIT_CONFIG_X86_32 */
+		:
+		: "r" (info)
+#if (defined SLJIT_CONFIG_X86_32 && SLJIT_CONFIG_X86_32)
+		: "memory", "eax", "ecx", "edx", "esi"
+#else /* !SLJIT_CONFIG_X86_32 */
+		: "memory", "rax", "rbx", "rcx", "rdx", "rsi"
+#endif /* SLJIT_CONFIG_X86_32 */
+	);
+
+#endif
 }
 
 static sljit_u32 execute_get_xcr0_low(void)
