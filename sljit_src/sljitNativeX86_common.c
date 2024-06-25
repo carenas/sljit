@@ -435,43 +435,6 @@ static void execute_cpu_id(sljit_u32 info[4])
 
 	__cpuidex((int*)info, (int)info[0], (int)info[2]);
 
-#elif (defined(__INTEL_LLVM_COMPILER) && __INTEL_LLVM_COMPILER < 20220100) \
-	|| (defined(__clang__) && __clang_major__ < 14) \
-	|| (defined(__GNUC__) && __GNUC__ < 3) \
-	|| defined(__SUNPRO_C) || defined(__SUNPRO_CC) || defined(__TINYC__)
-
-	/* AT&T syntax. */
-	__asm__ (
-#if (defined SLJIT_CONFIG_X86_32 && SLJIT_CONFIG_X86_32)
-		"movl %0, %%esi\n"
-		"movl (%%esi), %%eax\n"
-		"movl 8(%%esi), %%ecx\n"
-		"pushl %%ebx\n"
-		"cpuid\n"
-		"movl %%eax, (%%esi)\n"
-		"movl %%ebx, 4(%%esi)\n"
-		"popl %%ebx\n"
-		"movl %%ecx, 8(%%esi)\n"
-		"movl %%edx, 12(%%esi)\n"
-#else /* !SLJIT_CONFIG_X86_32 */
-		"movq %0, %%rsi\n"
-		"movl (%%rsi), %%eax\n"
-		"movl 8(%%rsi), %%ecx\n"
-		"cpuid\n"
-		"movl %%eax, (%%rsi)\n"
-		"movl %%ebx, 4(%%rsi)\n"
-		"movl %%ecx, 8(%%rsi)\n"
-		"movl %%edx, 12(%%rsi)\n"
-#endif /* SLJIT_CONFIG_X86_32 */
-		:
-		: "r" (info)
-#if (defined SLJIT_CONFIG_X86_32 && SLJIT_CONFIG_X86_32)
-		: "memory", "eax", "ecx", "edx", "esi"
-#else /* !SLJIT_CONFIG_X86_32 */
-		: "memory", "rax", "rbx", "rcx", "rdx", "rsi"
-#endif /* SLJIT_CONFIG_X86_32 */
-	);
-
 #elif defined(_MSC_VER)
 
 	/* Intel syntax. */
@@ -499,37 +462,12 @@ static void execute_cpu_id(sljit_u32 info[4])
 #endif /* SLJIT_CONFIG_X86_32 */
 	}
 
-#else /* __GNUC__ */
+#else
 
-	__asm__ (
-#if (defined SLJIT_CONFIG_X86_32 && SLJIT_CONFIG_X86_32)
-		"mov{l %0, %%esi| esi, %0}\n"
-		"mov{l (%%esi), %%eax| eax, [esi]}\n"
-		"mov{l 8(%%esi), %%ecx| ecx, [esi + 8]}\n"
-		"push{l %%ebx| ebx}\n"
+	__asm__ __volatile__ (
 		"cpuid\n"
-		"mov{l %%eax, (%%esi)| [esi], eax}\n"
-		"mov{l %%ebx, 4(%%esi)| [esi + 4], ebx}\n"
-		"pop{l %%ebx| ebx}\n"
-		"mov{l %%ecx, 8(%%esi)| [esi + 8], ecx}\n"
-		"mov{l %%edx, 12(%%esi)| [esi + 12], edx\n"
-#else /* !SLJIT_CONFIG_X86_32 */
-		"mov{q %0, %%rsi| rsi, %0}\n"
-		"mov{l (%%rsi), %%eax| eax, [rsi]}\n"
-		"mov{l 8(%%rsi), %%ecx| ecx, [rsi + 8]}\n"
-		"cpuid\n"
-		"mov{l %%eax, (%%rsi)| [rsi], eax}\n"
-		"mov{l %%ebx, 4(%%rsi)| [rsi + 4], ebx}\n"
-		"mov{l %%ecx, 8(%%rsi)| [rsi + 8], ecx}\n"
-		"mov{l %%edx, 12(%%rsi)| [rsi + 12], edx}\n"
-#endif /* SLJIT_CONFIG_X86_32 */
-		:
-		: "r" (info)
-#if (defined SLJIT_CONFIG_X86_32 && SLJIT_CONFIG_X86_32)
-		: "memory", "eax", "ecx", "edx", "esi"
-#else /* !SLJIT_CONFIG_X86_32 */
-		: "memory", "rax", "rbx", "rcx", "rdx", "rsi"
-#endif /* SLJIT_CONFIG_X86_32 */
+		: "=a" (info[0]), "=b" (info[1]), "=c" (info[2]), "=d" (info[3])
+		: "0" (info[0]), "2" (info[2])
 	);
 
 #endif
