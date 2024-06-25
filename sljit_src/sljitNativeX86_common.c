@@ -540,6 +540,7 @@ static sljit_u32 execute_get_xcr0_low(void)
 	);
 
 #endif
+	printf("DEBUG: %x\n", xcr0);
 	return xcr0;
 }
 
@@ -591,6 +592,8 @@ static void get_cpu_features(void)
 		feature_list &= ~(sljit_u32)(CPU_FEATURE_AVX | CPU_FEATURE_AVX2);
 
 	cpu_feature_list = feature_list;
+
+printf("DEBUG: %x\n", feature_list);
 }
 
 static sljit_u8 get_jump_code(sljit_uw type)
