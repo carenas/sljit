@@ -5314,6 +5314,7 @@ static void test51(void)
 
 	if (!malloc_addr) {
 		printf("Cannot allocate executable memory\n");
+		sljit_free_compiler(compiler);
 		return;
 	}
 
@@ -7504,7 +7505,7 @@ static void test69(void)
 {
 	/* Test atomic load and store. */
 	executable_code code;
-	struct sljit_compiler *compiler = sljit_create_compiler(NULL);
+	struct sljit_compiler *compiler;
 	struct sljit_label *label;
 	struct sljit_jump *jump;
 	sljit_u8 supported[9];
@@ -7521,6 +7522,7 @@ static void test69(void)
 		return;
 	}
 
+	compiler = sljit_create_compiler(NULL);
 	FAILED(!compiler, "cannot create compiler\n");
 
 	for (i = 1; i < 48; i++)
