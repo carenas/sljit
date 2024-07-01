@@ -3622,6 +3622,7 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_atomic_load(struct sljit_compiler 
 		case SLJIT_MOV_P:
 			ins = LL_D;
 			break;
+		case SLJIT_MOV_U32:
 		case SLJIT_MOV_S32:
 		case SLJIT_MOV32:
 			ins = LL_W;
@@ -3687,6 +3688,7 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_atomic_store(struct sljit_compiler
 		case SLJIT_MOV_P:
 			ins = SC_D;
 			break;
+		case SLJIT_MOV_U32:
 		case SLJIT_MOV_S32:
 		case SLJIT_MOV32:
 			ins = SC_W;
