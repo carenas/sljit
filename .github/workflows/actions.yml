@@ -248,7 +248,7 @@ jobs:
           make -j4
     - name: Build and test
       env:
-        CROSS_COMPILER: ./cross-tools/bin/loongarch64-unknown-linux-gnu-gcc-14.1.0
+        CROSS_COMPILER: ./cross-tools/bin/loongarch64-unknown-linux-gnu-gcc-14.2.0
         CFLAGS: -march=la464
         EXTRA_LDFLAGS: -static
       run: |
