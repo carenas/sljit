@@ -58,6 +58,7 @@ jobs:
     - name: Install qemu
       run: |
         wget https://github.com/loongson/build-tools/releases/download/2024.11.01/qemu-loongarch64
+        chmod a+x qemu-loongarch64
     - name: Build and test
       env:
         CROSS_COMPILER: ./cross-tools/bin/loongarch64-unknown-linux-gnu-gcc-14.2.0

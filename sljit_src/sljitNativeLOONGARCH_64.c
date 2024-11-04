@@ -440,7 +440,7 @@ static SLJIT_INLINE sljit_ins* detect_jump_type(struct sljit_jump *jump, sljit_i
 
 		if (diff >= BRANCH16_MIN && diff <= BRANCH16_MAX) {
 			code_ptr--;
-			code_ptr[0] = (inst[0] & 0xfc0003ff) ^ 0x4000000;
+			code_ptr[0] = (code_ptr[0] & 0xfc0003ff) ^ 0x4000000;
 			jump->flags |= PATCH_B;
 			jump->addr = (sljit_uw)code_ptr;
 			return code_ptr;
@@ -469,7 +469,7 @@ static SLJIT_INLINE sljit_ins* detect_jump_type(struct sljit_jump *jump, sljit_i
 
 	if (target_addr <= (sljit_uw)S32_MAX) {
 		if (jump->flags & IS_COND)
-			inst[-1] |= (sljit_ins)IMM_I16(3);
+			code_ptr[-1] |= (sljit_ins)IMM_I16(3);
 
 		jump->flags |= PATCH_ABS32;
 		code_ptr[1] = code_ptr[0];
