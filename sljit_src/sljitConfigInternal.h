@@ -970,6 +970,27 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_sw sljit_exec_offset(void *code);
 
 #endif /* !SLJIT_COMPILE_ASSERT */
 
+#ifndef SLJIT_FALLTHROUGH
+
+#if __STDC_VERSION__ >= 202311L && defined(__has_c_attribute)
+#if __has_c_attribute(fallthrough) >= 202311L
+#define SLJIT_FALLTHROUGH [[__fallthrough__]];
+#elif __clang_major__ >= 6
+#define SLJIT_FALLTHROUGH [[clang::fallthrough]];
+#endif
+#elif defined(__clang__) && (__clang_major__ >= 6 \
+	|| (__cplusplus >= 201103L && (__clang_major__ > 3 || (__clang_major__ == 3 && __clang_minor__ >= 2))))
+#define SLJIT_FALLTHROUGH [[clang::fallthrough]];
+#elif __GNUC__ >= 7 && !defined(__INTEL_COMPILER)
+#define SLJIT_FALLTHROUGH __attribute__((__fallthrough__));
+#endif
+
+#ifndef SLJIT_FALLTHROUGH
+#define SLJIT_FALLTHROUGH
+#endif
+
+#endif /* !SLJIT_FALLTHROUGH */
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
