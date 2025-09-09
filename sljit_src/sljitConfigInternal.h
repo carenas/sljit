@@ -979,14 +979,14 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_sw sljit_exec_offset(void *code);
 #define SLJIT_FALLTHROUGH [[fallthrough]];
 #endif
 #elif !defined(__cplusplus) && \
-	  defined(__STDC_VERSION__) && __STDC_VERSION__ >= 202311L && \
+	  defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201710L && \
 	  defined(__has_c_attribute)
 /* Standards-compatible C variant. */
 #if __has_c_attribute(fallthrough)
 #define SLJIT_FALLTHROUGH [[fallthrough]];
 #endif
-#elif ((defined(__clang__) && __clang_major__ >= 9) || \
-	   (defined(__GNUC__) && __GNUC__ >= 9)) && \
+#elif ((defined(__clang__) && __clang_major__ >= 10) || \
+	   (defined(__GNUC__) && __GNUC__ >= 7)) && \
 	  defined(__has_attribute)
 /* Clang and GCC syntax. Rule out old versions because apparently Clang at
    least has a broken implementation of __has_attribute. */
